@@ -1,0 +1,94 @@
+version: '3.8'
+
+services:
+  frontend:
+    image: ghcr.io/jangiese/marrygram-frontend:development
+    container_name: marrygram-frontend
+    env_file:
+      - stack.env
+    profiles:
+      - prod
+    ports:
+      - "4300:80"
+    depends_on:
+      - backend
+
+  backend:
+    image: ghcr.io/jangiese/marrygram-backend:development
+    container_name: marrygram-backend
+    profiles:
+      - prod
+      - backend
+    ports:
+      - "8081:8080"
+    env_file:
+      - stack.env
+    depends_on:
+      - db
+      - minio
+      - rabbitmq
+    extra_hosts:
+      - "minio.giese.duckdns.org:host-gateway"
+
+  media-compressor:
+    image: ghcr.io/jangiese/marrygram-media-compressor:latest
+    container_name: marrygram-media-compressor
+    profiles:
+      - prod
+      - media-compressor
+    env_file:
+      - stack.env
+    depends_on:
+      - db
+      - minio
+      - rabbitmq
+    extra_hosts:
+      - "minio.giese.duckdns.org:host-gateway"
+
+  db:
+    image: postgres:17
+    container_name: marrygram-db
+    profiles:
+      - infra
+      - prod
+    ports: # remove for production
+      - "5432:5432"
+    env_file:
+      - stack.env
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./init_db:/docker-entrypoint-initdb.d
+
+  minio:
+    image: minio/minio
+    container_name: marrygram-storage
+    command: server /data --console-address ":9001"
+    profiles:
+      - infra
+      - prod
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    env_file:
+      - stack.env
+    volumes:
+      - minio-data:/data
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: marrygram-rabbitmq
+    profiles:
+      - infra
+      - prod
+    ports: # remove for production
+      - "5672:5672"
+      - "15672:15672"
+
+volumes:
+  db-data:
+  minio-data:
+
+networks:
+  default:
+    name: nginx
+    external: true
