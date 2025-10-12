@@ -1,0 +1,24 @@
+services:
+  frontend:
+    profiles:
+      - frontend
+    ports:
+      - "4300:80"
+
+  backend:
+    profiles:
+      - backend
+    ports:
+      - "8081:8080"
+
+  db:
+    ports:
+      - "5432:5432"
+
+  minio:
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+  rabbitmq:
+    ports:
+      - "5672:5672"
