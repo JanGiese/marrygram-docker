@@ -1,0 +1,34 @@
+# Cypress
+cypress/screenshots/
+cypress/videos/
+cypress/downloads/
+cypress/results/
+cypress.env.json
+
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+.npm
+.yarn
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+logs
+*.log
+

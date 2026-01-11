@@ -1,0 +1,123 @@
+name: Integration Tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      frontend_image:
+        description: 'Frontend Docker image tag'
+        required: false
+        default: 'latest'
+      backend_image:
+        description: 'Backend Docker image tag'
+        required: false
+        default: 'latest'
+      media_compressor_image:
+        description: 'Media Compressor Docker image tag'
+        required: false
+        default: 'latest'
+  repository_dispatch:
+    types: [run-integration-tests]
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  integration-tests:
+    name: Run Integration Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_TOKEN }}
+
+      - name: Pull Docker images
+        env:
+          FRONTEND_TAG: ${{ github.event.inputs.frontend_image || github.event.client_payload.frontend_image || 'development' }}
+          BACKEND_TAG: ${{ github.event.inputs.backend_image || github.event.client_payload.backend_image || 'development' }}
+          MEDIA_TAG: ${{ github.event.inputs.media_compressor_image || github.event.client_payload.media_compressor_image || 'latest' }}
+        run: |
+          docker compose -f compose.yml -f compose.test.yml pull
+
+      - name: Start services
+        run: |
+          docker network create nginx || true
+          docker compose -f compose.yml -f compose.test.yml up -d
+
+      - name: Wait for services to be ready
+        run: |
+          echo "Waiting for frontend to be ready..."
+          timeout 120 bash -c 'until curl -f http://localhost:4300; do sleep 2; done'
+
+      - name: Run Cypress tests
+        run: npm run test
+        env:
+          CYPRESS_BASE_URL: http://localhost:4300
+          CYPRESS_API_URL: http://localhost:8081
+          CYPRESS_MINIO_URL: http://localhost:9000
+          CYPRESS_RABBITMQ_MGMT_URL: http://localhost:15672
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-results
+          path: |
+            cypress/videos
+            cypress/screenshots
+          retention-days: 7
+
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: |
+            cypress/results
+          retention-days: 7
+
+      - name: Generate test summary
+        if: always()
+        run: |
+          echo "## Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "Integration tests completed." >> $GITHUB_STEP_SUMMARY
+          if [ -d "cypress/videos" ]; then
+            echo "Videos and screenshots are available in the artifacts." >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Show logs on failure
+        if: failure()
+        run: |
+          echo "=== Backend Logs ==="
+          docker logs marrygram-backend || true
+          echo "=== Frontend Logs ==="
+          docker logs marrygram-frontend || true
+          echo "=== Media Compressor Logs ==="
+          docker logs marrygram-media-compressor || true
+          echo "=== Database Logs ==="
+          docker logs marrygram-db || true
+          echo "=== MinIO Logs ==="
+          docker logs marrygram-storage || true
+          echo "=== RabbitMQ Logs ==="
+          docker logs marrygram-rabbitmq || true
+
+      - name: Cleanup
+        if: always()
+        run: |
+          docker compose -f compose.yml -f compose.test.yml down -v
+
