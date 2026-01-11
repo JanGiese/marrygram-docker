@@ -150,8 +150,8 @@ runs:
         github-token: ${{ inputs.password }}
         script: |
           const inputs = ${{ toJSON(inputs) }};
-          const owner = inputs.repo_owner;
-          const repo = inputs.repo;
+          let owner = inputs.repo_owner;
+          let repo = inputs.repo;
           const issue_number = inputs.issue_number;
           const comment_id = ${{ steps.docker-tags.outputs.comment_id }};
           const runId = '${{ steps.get-run.outputs.run_id }}';
