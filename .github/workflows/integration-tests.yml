@@ -107,6 +107,8 @@ jobs:
           docker logs marrygram-backend || true
           echo "=== Frontend Logs ==="
           docker logs marrygram-frontend || true
+          echo "=== Media Compressor Logs ==="
+          docker logs marrygram-media-compressor || true
           echo "=== Database Logs ==="
           docker logs marrygram-db || true
           echo "=== MinIO Logs ==="
