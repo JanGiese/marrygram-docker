@@ -27,7 +27,7 @@ runs:
       with:
         github-token: ${{ inputs.password }}
         script: |
-          const inputs = ${{ toJSON(inputs) }}
+          const inputs = ${{ toJSON(inputs) }};
           const owner = inputs.repo_owner;
           const repo = inputs.repo;
           const issue_number = inputs.issue_number;
@@ -41,7 +41,7 @@ runs:
           };
 
           const { data: comments } = await github.rest.issues.listComments({
-            "JanGiese", "marrygram-backend", issue_number
+            owner, repo, issue_number
           });
 
           let comment = comments.find(c => c.body.includes(marker));
