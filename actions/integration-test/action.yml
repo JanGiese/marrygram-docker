@@ -16,11 +16,13 @@ runs:
         event-type: run-integration-tests
 
     - name: Wait for workflow to start
+      shell: bash
       run: |
         echo "Waiting for E2E workflow to start..."
         sleep 10
 
     - name: Get workflow run ID
+      shell: bash
       id: get-run
       env:
         GH_TOKEN: ${{ inputs.password }}
@@ -44,6 +46,7 @@ runs:
         echo "View at: https://github.com/jangiese/marrygram-docker/actions/runs/$run_id"
 
     - name: Wait for E2E tests completion
+      shell: bash
       env:
         GH_TOKEN: ${{ inputs.password }}
         RUN_ID: ${{ steps.get-run.outputs.run_id }}
@@ -85,6 +88,7 @@ runs:
         fi
 
     - name: Report E2E test results
+      shell: bash
       env:
         GH_TOKEN: ${{ inputs.password }}
         RUN_ID: ${{ steps.get-run.outputs.run_id }}
