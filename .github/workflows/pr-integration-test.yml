@@ -4,6 +4,9 @@ on:
   pull_request:
     branches:
       - main
+  issue_comment:
+    types:
+      - edited
 
 jobs:
   integration-test:
