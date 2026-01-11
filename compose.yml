@@ -46,9 +46,10 @@ services:
     env_file:
       - stack.env
     depends_on:
-      - db
-      - minio
-      - rabbitmq
+      minio:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     extra_hosts:
       - "minio.jpgiese.com:host-gateway"
     healthcheck:
