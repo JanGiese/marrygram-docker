@@ -62,8 +62,7 @@ runs:
               break;
             
             default:
-              // sensible fallback
-              defaultTags.backend = 'development';
+              break;
           }
 
           const { data: comments } = await github.rest.issues.listComments({
