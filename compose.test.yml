@@ -1,16 +1,16 @@
 services:
   frontend:
-    image: ghcr.io/jangiese/marrygram-frontend:development
+    image: ghcr.io/jangiese/marrygram-frontend:${FRONTEND_TAG}
     ports:
       - "4300:80"
 
   backend:
-    image: ghcr.io/jangiese/marrygram-backend:development
+    image: ghcr.io/jangiese/marrygram-backend:${BACKEND_TAG}
     ports:
       - "8081:8080"
 
   media-compressor:
-    image: ghcr.io/jangiese/marrygram-media-compressor:development
+    image: ghcr.io/jangiese/marrygram-media-compressor:${MEDIA_COMPRESSOR_TAG}
 
   db:
     ports:
