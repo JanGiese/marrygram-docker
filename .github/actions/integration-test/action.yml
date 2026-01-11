@@ -3,12 +3,16 @@ name: integration-test-action
 inputs:
   password:
     required: true
+    description: 'The GitHub token to be used.'
   issue_number:
     required: false
+    description: 'The PR number triggering this build'
   repo:
     required: false
+    description: 'The repository triggering this build'
   repo_owner:
     required: false
+    description: 'The owner of the repository triggering this build'
 
 runs:
   using: "composite"
