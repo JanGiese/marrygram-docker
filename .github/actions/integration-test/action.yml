@@ -52,38 +52,45 @@ runs:
             owner, repo, issue_number
           });
 
-          let comment = comments.find(c => c.body.includes(marker));
-
+          let comment = comments.find(c => c.body?.includes(marker));
+          
           if (!comment) {
             const body = `
-          ${marker}
+            ${marker}
           ### 🧪 Integration tests
-
-          **Docker images**
+            
+            **Docker images**
           - marrygram-frontend: \`${defaultTags.frontend}\`
           - marrygram-backend: \`${defaultTags.backend}\`
           - marrygram-media-compressor: \`${defaultTags.media}\`
-
-          **Status**
-          ⏳ Waiting for results...
-          `;
-
-            comment = await github.rest.issues.createComment({
-              owner, repo, issue_number, body
-            });
+            
+            **Status**
+            ⏳ Waiting for results...
+            `;
+          
+            const response = await github.rest.issues.createComment({
+            owner, repo, issue_number, body
+          });
+          
+            comment = response.data;
           }
-
-          const extract = (name) => {
-            const m = comment.body.match(new RegExp(`${name}:\\s*\\\`([^\\\`]+)`));
-            return m?.[1];
+            
+            const extract = (name) => {
+            if (!comment?.body) return null;
+          
+            const m = comment.body.match(
+            new RegExp(`${name}:\\s*\\\`([^\\\`]+)`)
+            );
+            return m?.[1] ?? null;
           };
-
+          
           core.setOutput('comment_id', comment.id);
           core.setOutput('frontend', extract('marrygram-frontend') ?? defaultTags.frontend);
           core.setOutput('backend', extract('marrygram-backend') ?? defaultTags.backend);
           core.setOutput('media', extract('marrygram-media-compressor') ?? defaultTags.media);
 
-    # ------------------------------------------------------------
+
+# ------------------------------------------------------------
     # Trigger E2E workflow
     # ------------------------------------------------------------
     - name: Trigger E2E tests
