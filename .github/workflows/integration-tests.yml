@@ -62,7 +62,7 @@ jobs:
 
       - name: Start services
         run: |
-          docker compose -f compose.test.yml up -d
+          ./scripts/infra.test.sh up -d
 
       - name: Run Cypress tests
         run: npm run test
