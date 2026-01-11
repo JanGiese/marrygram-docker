@@ -58,12 +58,12 @@ runs:
             const body = `
             ${marker}
           ### 🧪 Integration tests
-            
+          
             **Docker images**
           - marrygram-frontend: \`${defaultTags.frontend}\`
           - marrygram-backend: \`${defaultTags.backend}\`
           - marrygram-media-compressor: \`${defaultTags.media}\`
-            
+          
             **Status**
             ⏳ Waiting for results...
             `;
@@ -74,7 +74,7 @@ runs:
           
             comment = response.data;
           }
-            
+          
             const extract = (name) => {
             if (!comment?.body) return null;
           
@@ -88,9 +88,9 @@ runs:
           core.setOutput('frontend', extract('marrygram-frontend') ?? defaultTags.frontend);
           core.setOutput('backend', extract('marrygram-backend') ?? defaultTags.backend);
           core.setOutput('media', extract('marrygram-media-compressor') ?? defaultTags.media);
+    
 
-
-# ------------------------------------------------------------
+    # ------------------------------------------------------------
     # Trigger E2E workflow
     # ------------------------------------------------------------
     - name: Trigger E2E tests
@@ -114,7 +114,7 @@ runs:
         GH_TOKEN: ${{ inputs.password }}
       run: |
         run_id=$(gh api /repos/jangiese/marrygram-docker/actions/runs \
-          --jq '.workflow_runs[] | select(.event=="repository_dispatch") | .id' | head -n 1)
+        --jq '.workflow_runs | map(select(.event=="repository_dispatch")) | .[0].id')
 
         [ -z "$run_id" ] && exit 1
         echo "run_id=$run_id" >> $GITHUB_OUTPUT
