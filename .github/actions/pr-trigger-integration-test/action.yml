@@ -116,6 +116,12 @@ runs:
         repository: jangiese/marrygram-docker
         token: ${{ inputs.password }}
         event-type: run-integration-tests
+        client-payload: |
+          {
+            "frontend_tag": "${{ steps.docker-tags.outputs.frontend }}",
+            "backend_tag": "${{ steps.docker-tags.outputs.backend }}",
+            "media_tag": "${{ steps.docker-tags.outputs.media }}"
+          }
 
     - name: Wait for workflow to start
       shell: bash

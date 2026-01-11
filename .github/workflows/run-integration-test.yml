@@ -32,9 +32,9 @@ jobs:
       - name: Export docker image tags
         shell: bash
         run: |
-          echo "FRONTEND_TAG=${{ steps.docker-tags.outputs.frontend }}" >> $GITHUB_ENV
-          echo "BACKEND_TAG=${{ steps.docker-tags.outputs.backend }}" >> $GITHUB_ENV
-          echo "MEDIA_TAG=${{ steps.docker-tags.outputs.media }}" >> $GITHUB_ENV
+          echo "FRONTEND_TAG=${{ github.event.client_payload.frontend_tag }}" >> $GITHUB_ENV
+          echo "BACKEND_TAG=${{ github.event.client_payload.backend_tag }}" >> $GITHUB_ENV
+          echo "MEDIA_TAG=${{ github.event.client_payload.media_tag }}" >> $GITHUB_ENV
 
       - name: Pull Docker images
         run: |
