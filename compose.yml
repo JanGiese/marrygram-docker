@@ -8,6 +8,8 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+      media-compressor:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:80 || exit 1"]
       interval: 10s
@@ -27,8 +29,6 @@ services:
       minio:
         condition: service_healthy
       rabbitmq:
-        condition: service_healthy
-      media-compressor:
         condition: service_healthy
     extra_hosts:
       - "minio.jpgiese.com:host-gateway"
