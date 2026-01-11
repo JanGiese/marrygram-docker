@@ -41,12 +41,30 @@ runs:
           const issue_number = inputs.issue_number;
 
           const marker = '<!-- integration-test -->';
-
+  
           const defaultTags = {
             frontend: 'latest',
-            backend: 'development',
+            backend: 'latest',
             media: 'latest',
           };
+            
+          switch (repo) {
+            case 'marrygram-backend':
+              defaultTags.backend = 'development';
+              break;
+            
+            case 'marrygram-frontend':
+              defaultTags.frontend = 'development';
+              break;
+            
+            case 'marrygram-media-compressor':
+              defaultTags.media = 'development';
+              break;
+            
+            default:
+              // sensible fallback
+              defaultTags.backend = 'development';
+          }
 
           const { data: comments } = await github.rest.issues.listComments({
             owner, repo, issue_number
