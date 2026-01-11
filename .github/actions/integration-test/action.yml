@@ -41,7 +41,7 @@ runs:
           };
 
           const { data: comments } = await github.rest.issues.listComments({
-            'JanGiese', 'marrygram-backend', issue_number
+            "JanGiese", "marrygram-backend", issue_number
           });
 
           let comment = comments.find(c => c.body.includes(marker));
