@@ -1,25 +1,8 @@
 name: Integration Tests
 
 on:
-  workflow_dispatch:
-    inputs:
-      frontend_image:
-        description: 'Frontend Docker image tag'
-        required: false
-        default: 'latest'
-      backend_image:
-        description: 'Backend Docker image tag'
-        required: false
-        default: 'latest'
-      media_compressor_image:
-        description: 'Media Compressor Docker image tag'
-        required: false
-        default: 'latest'
   repository_dispatch:
     types: [run-integration-tests]
-  pull_request:
-    branches:
-      - main
 
 jobs:
   integration-tests:
