@@ -1,0 +1,213 @@
+name: integration-test-action
+
+inputs:
+  password:
+    required: true
+    description: 'The GitHub token to be used.'
+  issue_number:
+    required: false
+    description: 'The PR number triggering this build'
+  repo:
+    required: false
+    description: 'The repository triggering this build'
+  repo_owner:
+    required: false
+    description: 'The owner of the repository triggering this build'
+
+runs:
+  using: "composite"
+  steps:
+    # ------------------------------------------------------------
+    # Resolve or create PR comment with docker tags
+    # ------------------------------------------------------------
+    - name: Resolve docker tags from PR comment
+      id: docker-tags
+      if: inputs.issue_number
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ inputs.password }}
+        script: |
+          const inputs = ${{ toJSON(inputs) }};
+          let owner = inputs.repo_owner;
+          let repo = inputs.repo;
+          
+          // 🔒 Normalize repo if passed as owner/repo
+          if (repo && repo.includes('/')) {
+            const parts = repo.split('/');
+            owner = parts[0];
+            repo = parts[1];
+          }
+
+          const issue_number = inputs.issue_number;
+
+          const marker = '<!-- integration-test -->';
+  
+          const defaultTags = {
+            frontend: 'latest',
+            backend: 'latest',
+            media: 'latest',
+          };
+            
+          switch (repo) {
+            case 'marrygram-backend':
+              defaultTags.backend = 'development';
+              break;
+            
+            case 'marrygram-frontend':
+              defaultTags.frontend = 'development';
+              break;
+            
+            case 'marrygram-media-compressor':
+              defaultTags.media = 'development';
+              break;
+            
+            default:
+              break;
+          }
+
+          const { data: comments } = await github.rest.issues.listComments({
+            owner, repo, issue_number
+          });
+
+          let comment = comments.find(c => c.body?.includes(marker));
+          
+          if (!comment) {
+            const body = `
+            ${marker}
+          ### 🧪 Integration tests
+          
+            **Docker images**
+          - marrygram-frontend: \`${defaultTags.frontend}\`
+          - marrygram-backend: \`${defaultTags.backend}\`
+          - marrygram-media-compressor: \`${defaultTags.media}\`
+          
+            **Status**
+            ⏳ Waiting for results...
+            `;
+          
+            const response = await github.rest.issues.createComment({
+            owner, repo, issue_number, body
+          });
+          
+            comment = response.data;
+          }
+          
+            const extract = (name) => {
+            if (!comment?.body) return null;
+          
+            const m = comment.body.match(
+            new RegExp(`${name}:\\s*\\\`([^\\\`]+)`)
+            );
+            return m?.[1] ?? null;
+          };
+          
+          core.setOutput('comment_id', comment.id);
+          core.setOutput('frontend', extract('marrygram-frontend') ?? defaultTags.frontend);
+          core.setOutput('backend', extract('marrygram-backend') ?? defaultTags.backend);
+          core.setOutput('media', extract('marrygram-media-compressor') ?? defaultTags.media);
+    
+
+    # ------------------------------------------------------------
+    # Trigger E2E workflow
+    # ------------------------------------------------------------
+    - name: Trigger E2E tests
+      uses: peter-evans/repository-dispatch@v3
+      with:
+        repository: jangiese/marrygram-docker
+        token: ${{ inputs.password }}
+        event-type: run-integration-tests
+
+    - name: Wait for workflow to start
+      shell: bash
+      run: sleep 10
+
+    # ------------------------------------------------------------
+    # Get workflow run ID
+    # ------------------------------------------------------------
+    - name: Get workflow run ID
+      id: get-run
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.password }}
+      run: |
+        run_id=$(gh api /repos/jangiese/marrygram-docker/actions/runs \
+        --jq '.workflow_runs | map(select(.event=="repository_dispatch")) | .[0].id')
+
+        [ -z "$run_id" ] && exit 1
+        echo "run_id=$run_id" >> $GITHUB_OUTPUT
+
+    # ------------------------------------------------------------
+    # Wait for completion
+    # ------------------------------------------------------------
+    - name: Wait for E2E tests completion
+      id: wait
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.password }}
+        RUN_ID: ${{ steps.get-run.outputs.run_id }}
+      run: |
+        while true; do
+          status=$(gh api /repos/jangiese/marrygram-docker/actions/runs/$RUN_ID --jq '.status')
+          conclusion=$(gh api /repos/jangiese/marrygram-docker/actions/runs/$RUN_ID --jq '.conclusion')
+
+          if [ "$status" = "completed" ]; then
+            echo "conclusion=$conclusion" >> $GITHUB_OUTPUT
+            break
+          fi
+          sleep 30
+        done
+
+    # ------------------------------------------------------------
+    # Update PR comment (success OR failure)
+    # ------------------------------------------------------------
+    - name: Update PR comment with result
+      if: inputs.issue_number
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ inputs.password }}
+        script: |
+          const inputs = ${{ toJSON(inputs) }};
+          let owner = inputs.repo_owner;
+          let repo = inputs.repo;
+          const issue_number = inputs.issue_number;
+          const comment_id = ${{ steps.docker-tags.outputs.comment_id }};
+          const runId = '${{ steps.get-run.outputs.run_id }}';
+          const conclusion = '${{ steps.wait.outputs.conclusion }}';
+          
+          // 🔒 Normalize repo if passed as owner/repo
+          if (repo && repo.includes('/')) {
+            const parts = repo.split('/');
+            owner = parts[0];
+            repo = parts[1];
+          }
+
+          const statusLine = conclusion === 'success'
+            ? '✅ **Integration tests passed**'
+            : '❌ **Integration tests failed**';
+
+          const body = `
+          <!-- integration-test -->
+          ### 🧪 Integration tests
+
+          **Docker images**
+          - marrygram-frontend: \`${{ steps.docker-tags.outputs.frontend }}\`
+          - marrygram-backend: \`${{ steps.docker-tags.outputs.backend }}\`
+          - marrygram-media-compressor: \`${{ steps.docker-tags.outputs.media }}\`
+
+          **Status**
+          ${statusLine}
+
+          🔗 https://github.com/jangiese/marrygram-docker/actions/runs/${runId}
+          `;
+
+          await github.rest.issues.updateComment({
+            owner, repo, comment_id, body
+          });
+
+    # ------------------------------------------------------------
+    # Fail job if tests failed
+    # ------------------------------------------------------------
+    - name: Fail if E2E failed
+      if: steps.wait.outputs.conclusion != 'success'
+      shell: bash
+      run: exit 1

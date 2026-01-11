@@ -1,25 +1,8 @@
-name: Integration Tests
+name: Run Integration Tests
 
 on:
-  workflow_dispatch:
-    inputs:
-      frontend_image:
-        description: 'Frontend Docker image tag'
-        required: false
-        default: 'latest'
-      backend_image:
-        description: 'Backend Docker image tag'
-        required: false
-        default: 'latest'
-      media_compressor_image:
-        description: 'Media Compressor Docker image tag'
-        required: false
-        default: 'latest'
   repository_dispatch:
     types: [run-integration-tests]
-  pull_request:
-    branches:
-      - main
 
 jobs:
   integration-tests:
@@ -46,11 +29,14 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_TOKEN }}
 
+      - name: Export docker image tags
+        shell: bash
+        run: |
+          echo "FRONTEND_TAG=${{ steps.docker-tags.outputs.frontend }}" >> $GITHUB_ENV
+          echo "BACKEND_TAG=${{ steps.docker-tags.outputs.backend }}" >> $GITHUB_ENV
+          echo "MEDIA_TAG=${{ steps.docker-tags.outputs.media }}" >> $GITHUB_ENV
+
       - name: Pull Docker images
-        env:
-          FRONTEND_TAG: ${{ github.event.inputs.frontend_image || github.event.client_payload.frontend_image || 'development' }}
-          BACKEND_TAG: ${{ github.event.inputs.backend_image || github.event.client_payload.backend_image || 'development' }}
-          MEDIA_TAG: ${{ github.event.inputs.media_compressor_image || github.event.client_payload.media_compressor_image || 'latest' }}
         run: |
           docker compose -f compose.yml -f compose.test.yml pull
 

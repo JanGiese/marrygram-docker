@@ -1,0 +1,19 @@
+name: Trigger Integration Tests
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  integration-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Run integration tests
+        uses: JanGiese/marrygram-docker/.github/actions/pr-trigger-integration-test@feature/integration-tests
+        with:
+          password: ${{ secrets.PAT_TOKEN }}
+          issue_number: ${{ github.event.pull_request.number }}
+          repo: ${{ github.repository }}
+          repo_owner: ${{ github.repository_owner }}
