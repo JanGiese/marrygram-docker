@@ -1,0 +1,36 @@
+{
+  "name": "marrygram-docker",
+  "version": "1.0.0",
+  "description": "Docker orchestration and Cypress integration tests for Marrygram",
+  "main": "index.js",
+  "scripts": {
+    "cypress:open": "cypress open",
+    "cypress:run": "cypress run",
+    "test": "cypress run",
+    "test:smoke": "cypress run --spec 'cypress/e2e/smoke/**/*.cy.js'",
+    "test:api": "cypress run --spec 'cypress/e2e/api/**/*.cy.js'",
+    "test:ui": "cypress run --spec 'cypress/e2e/ui/**/*.cy.js'",
+    "test:integration": "cypress run --spec 'cypress/e2e/integration/**/*.cy.js'",
+    "test:headed": "cypress run --headed",
+    "test:chrome": "cypress run --browser chrome",
+    "test:firefox": "cypress run --browser firefox",
+    "test:edge": "cypress run --browser edge"
+  },
+  "keywords": [
+    "marrygram",
+    "cypress",
+    "e2e",
+    "testing"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@faker-js/faker": "^9.3.0",
+    "cypress": "^15.8.2",
+    "cypress-file-upload": "^5.0.8",
+    "cypress-wait-until": "^3.0.2"
+  },
+  "engines": {
+    "node": ">=24.12.0"
+  }
+}
