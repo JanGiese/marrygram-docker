@@ -6,7 +6,14 @@ services:
     env_file:
       - stack.env
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:80 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
   backend:
     image: ghcr.io/jangiese/marrygram-backend:development
@@ -15,11 +22,22 @@ services:
     env_file:
       - stack.env
     depends_on:
-      - db
-      - minio
-      - rabbitmq
+      db:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      media-compressor:
+        condition: service_healthy
     extra_hosts:
       - "minio.jpgiese.com:host-gateway"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health/liveness"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
 
   media-compressor:
     image: ghcr.io/jangiese/marrygram-media-compressor:latest
@@ -33,6 +51,12 @@ services:
       - rabbitmq
     extra_hosts:
       - "minio.jpgiese.com:host-gateway"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   db:
     image: postgres:17
@@ -45,6 +69,11 @@ services:
     volumes:
       - db-data:/var/lib/postgresql/data
       - ./init_db:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   minio:
     image: minio/minio
@@ -55,11 +84,21 @@ services:
       - stack.env
     volumes:
       - minio-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   rabbitmq:
     image: rabbitmq:3-management
     container_name: marrygram-rabbitmq
     restart: always
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
 volumes:
   db-data:
