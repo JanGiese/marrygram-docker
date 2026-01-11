@@ -156,6 +156,13 @@ runs:
           const comment_id = ${{ steps.docker-tags.outputs.comment_id }};
           const runId = '${{ steps.get-run.outputs.run_id }}';
           const conclusion = '${{ steps.wait.outputs.conclusion }}';
+          
+          // 🔒 Normalize repo if passed as owner/repo
+          if (repo && repo.includes('/')) {
+            const parts = repo.split('/');
+            owner = parts[0];
+            repo = parts[1];
+          }
 
           const statusLine = conclusion === 'success'
             ? '✅ **Integration tests passed**'
