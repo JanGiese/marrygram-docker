@@ -2,30 +2,32 @@ name: integration-test-action
 
 inputs:
   password:
-    description: 'Password for the container registry'
     required: true
   issue_number:
-    description: 'The PR number triggering this build'
+    required: false
   repo:
-    description: 'Repository triggering this build'
+    required: false
   repo_owner:
-    description: 'Owner of the repository triggering this build'
+    required: false
 
 runs:
   using: "composite"
   steps:
+    # ------------------------------------------------------------
+    # Resolve or create PR comment with docker tags
+    # ------------------------------------------------------------
     - name: Resolve docker tags from PR comment
       id: docker-tags
       if: inputs.issue_number
       uses: actions/github-script@v7
       with:
-        github-token: ${{inputs.password}}
+        github-token: ${{ inputs.password }}
         script: |
           const owner = inputs.repo_owner;
           const repo = inputs.repo;
           const issue_number = inputs.issue_number;
 
-          const marker = '<!-- integration-test-docker-tags -->';
+          const marker = '<!-- integration-test -->';
 
           const defaultTags = {
             frontend: 'latest',
@@ -34,9 +36,7 @@ runs:
           };
 
           const { data: comments } = await github.rest.issues.listComments({
-            owner,
-            repo,
-            issue_number,
+            owner, repo, issue_number
           });
 
           let comment = comments.find(c => c.body.includes(marker));
@@ -44,37 +44,35 @@ runs:
           if (!comment) {
             const body = `
           ${marker}
-          **Integration test docker images**
+          ### 🧪 Integration tests
 
+          **Docker images**
           - marrygram-frontend: \`${defaultTags.frontend}\`
           - marrygram-backend: \`${defaultTags.backend}\`
           - marrygram-media-compressor: \`${defaultTags.media}\`
+
+          **Status**
+          ⏳ Waiting for results...
           `;
 
-            await github.rest.issues.createComment({
-              owner,
-              repo,
-              issue_number,
-              body,
+            comment = await github.rest.issues.createComment({
+              owner, repo, issue_number, body
             });
-
-            core.setOutput('frontend', defaultTags.frontend);
-            core.setOutput('backend', defaultTags.backend);
-            core.setOutput('media', defaultTags.media);
-            return;
           }
 
           const extract = (name) => {
-            const match = comment.body.match(
-              new RegExp(`${name}:\\s*\\\`([^\\\`]+)\\\``)
-            );
-            return match ? match[1] : null;
+            const m = comment.body.match(new RegExp(`${name}:\\s*\\\`([^\\\`]+)`));
+            return m?.[1];
           };
 
+          core.setOutput('comment_id', comment.id);
           core.setOutput('frontend', extract('marrygram-frontend') ?? defaultTags.frontend);
           core.setOutput('backend', extract('marrygram-backend') ?? defaultTags.backend);
           core.setOutput('media', extract('marrygram-media-compressor') ?? defaultTags.media);
 
+    # ------------------------------------------------------------
+    # Trigger E2E workflow
+    # ------------------------------------------------------------
     - name: Trigger E2E tests
       uses: peter-evans/repository-dispatch@v3
       with:
@@ -84,99 +82,87 @@ runs:
 
     - name: Wait for workflow to start
       shell: bash
-      run: |
-        echo "Waiting for E2E workflow to start..."
-        sleep 10
+      run: sleep 10
 
+    # ------------------------------------------------------------
+    # Get workflow run ID
+    # ------------------------------------------------------------
     - name: Get workflow run ID
-      shell: bash
       id: get-run
+      shell: bash
       env:
         GH_TOKEN: ${{ inputs.password }}
       run: |
-        echo "Fetching latest workflow run..."
-        
-        # Get the latest workflow run triggered by repository_dispatch
-        run_id=$(gh api \
-          -H "Accept: application/vnd.github+json" \
-          -H "X-GitHub-Api-Version: 2022-11-28" \
-          /repos/jangiese/marrygram-docker/actions/runs \
-          --jq '.workflow_runs[] | select(.event == "repository_dispatch") | .id' | head -n 1)
-        
-        if [ -z "$run_id" ]; then
-          echo "No workflow run found"
-          exit 1
-        fi
-        
-        echo "run_id=$run_id" >> $GITHUB_OUTPUT
-        echo "Found workflow run: $run_id"
-        echo "View at: https://github.com/jangiese/marrygram-docker/actions/runs/$run_id"
+        run_id=$(gh api /repos/jangiese/marrygram-docker/actions/runs \
+          --jq '.workflow_runs[] | select(.event=="repository_dispatch") | .id' | head -n 1)
 
+        [ -z "$run_id" ] && exit 1
+        echo "run_id=$run_id" >> $GITHUB_OUTPUT
+
+    # ------------------------------------------------------------
+    # Wait for completion
+    # ------------------------------------------------------------
     - name: Wait for E2E tests completion
+      id: wait
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.password }}
         RUN_ID: ${{ steps.get-run.outputs.run_id }}
       run: |
-        echo "Waiting for workflow run $RUN_ID to complete..."
-        
-        max_wait=600  # 10 minutes
-        elapsed=0
-        interval=30
-        
-        while [ $elapsed -lt $max_wait ]; do
-          status=$(gh api \
-            -H "Accept: application/vnd.github+json" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            /repos/jangiese/marrygram-docker/actions/runs/$RUN_ID \
-            --jq '.status')
-        
-          conclusion=$(gh api \
-            -H "Accept: application/vnd.github+json" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            /repos/jangiese/marrygram-docker/actions/runs/$RUN_ID \
-            --jq '.conclusion')
-        
-          echo "Status: $status, Conclusion: $conclusion"
-        
+        while true; do
+          status=$(gh api /repos/jangiese/marrygram-docker/actions/runs/$RUN_ID --jq '.status')
+          conclusion=$(gh api /repos/jangiese/marrygram-docker/actions/runs/$RUN_ID --jq '.conclusion')
+
           if [ "$status" = "completed" ]; then
-            echo "conclusion=$conclusion" >> $GITHUB_ENV
+            echo "conclusion=$conclusion" >> $GITHUB_OUTPUT
             break
           fi
-        
-          sleep $interval
-          elapsed=$((elapsed + interval))
-          echo "Waited ${elapsed}s / ${max_wait}s..."
+          sleep 30
         done
-        
-        if [ $elapsed -ge $max_wait ]; then
-          echo "Timeout waiting for E2E tests to complete"
-          exit 1
-        fi
 
-    - name: Report E2E test results
+    # ------------------------------------------------------------
+    # Update PR comment (success OR failure)
+    # ------------------------------------------------------------
+    - name: Update PR comment with result
+      if: inputs.issue_number
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ inputs.password }}
+        script: |
+          const owner = inputs.repo_owner;
+          const repo = inputs.repo;
+          const issue_number = inputs.issue_number;
+          const comment_id = ${{ steps.docker-tags.outputs.comment_id }};
+          const runId = '${{ steps.get-run.outputs.run_id }}';
+          const conclusion = '${{ steps.wait.outputs.conclusion }}';
+
+          const statusLine = conclusion === 'success'
+            ? '✅ **Integration tests passed**'
+            : '❌ **Integration tests failed**';
+
+          const body = `
+          <!-- integration-test -->
+          ### 🧪 Integration tests
+
+          **Docker images**
+          - marrygram-frontend: \`${{ steps.docker-tags.outputs.frontend }}\`
+          - marrygram-backend: \`${{ steps.docker-tags.outputs.backend }}\`
+          - marrygram-media-compressor: \`${{ steps.docker-tags.outputs.media }}\`
+
+          **Status**
+          ${statusLine}
+
+          🔗 https://github.com/jangiese/marrygram-docker/actions/runs/${runId}
+          `;
+
+          await github.rest.issues.updateComment({
+            owner, repo, comment_id, body
+          });
+
+    # ------------------------------------------------------------
+    # Fail job if tests failed
+    # ------------------------------------------------------------
+    - name: Fail if E2E failed
+      if: steps.wait.outputs.conclusion != 'success'
       shell: bash
-      env:
-        GH_TOKEN: ${{ inputs.password }}
-        RUN_ID: ${{ steps.get-run.outputs.run_id }}
-      run: |
-        conclusion=$(gh api \
-          -H "Accept: application/vnd.github+json" \
-          -H "X-GitHub-Api-Version: 2022-11-28" \
-          /repos/jangiese/marrygram-docker/actions/runs/$RUN_ID \
-          --jq '.conclusion')
-        
-        echo "================================"
-        echo "E2E Test Results"
-        echo "================================"
-        echo "Workflow Run ID: $RUN_ID"
-        echo "URL: https://github.com/jangiese/marrygram-docker/actions/runs/$RUN_ID"
-        echo "Conclusion: $conclusion"
-        echo "================================"
-        
-        if [ "$conclusion" != "success" ]; then
-          echo "❌ E2E tests failed or were cancelled"
-          exit 1
-        else
-          echo "✅ E2E tests passed successfully"
-        fi
+      run: exit 1
