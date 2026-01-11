@@ -1,5 +1,10 @@
 name: integration-test-action
 
+inputs:
+  password:
+    description: 'Password for the container registry'
+    required: true
+
 runs:
   using: "composite"
   steps:
@@ -7,7 +12,7 @@ runs:
       uses: peter-evans/repository-dispatch@v3
       with:
         repository: jangiese/marrygram-docker
-        token: ${{ secrets.PAT_TOKEN }}
+        token: ${{ inputs.password }}
         event-type: run-integration-tests
 
     - name: Wait for workflow to start
@@ -18,7 +23,7 @@ runs:
     - name: Get workflow run ID
       id: get-run
       env:
-        GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+        GH_TOKEN: ${{ inputs.password }}
       run: |
         echo "Fetching latest workflow run..."
         
@@ -40,7 +45,7 @@ runs:
 
     - name: Wait for E2E tests completion
       env:
-        GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+        GH_TOKEN: ${{ inputs.password }}
         RUN_ID: ${{ steps.get-run.outputs.run_id }}
       run: |
         echo "Waiting for workflow run $RUN_ID to complete..."
@@ -81,7 +86,7 @@ runs:
 
     - name: Report E2E test results
       env:
-        GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+        GH_TOKEN: ${{ inputs.password }}
         RUN_ID: ${{ steps.get-run.outputs.run_id }}
       run: |
         conclusion=$(gh api \
