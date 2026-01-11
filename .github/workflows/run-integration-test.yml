@@ -34,7 +34,7 @@ jobs:
         run: |
           echo "FRONTEND_TAG=${{ github.event.client_payload.frontend_tag }}" >> $GITHUB_ENV
           echo "BACKEND_TAG=${{ github.event.client_payload.backend_tag }}" >> $GITHUB_ENV
-          echo "MEDIA_TAG=${{ github.event.client_payload.media_tag }}" >> $GITHUB_ENV
+          echo "MEDIA_COMPRESSOR_TAG=${{ github.event.client_payload.media_compressor_tag }}" >> $GITHUB_ENV
 
       - name: Pull Docker images
         run: |

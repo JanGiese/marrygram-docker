@@ -120,7 +120,7 @@ runs:
           {
             "frontend_tag": "${{ steps.docker-tags.outputs.frontend }}",
             "backend_tag": "${{ steps.docker-tags.outputs.backend }}",
-            "media_tag": "${{ steps.docker-tags.outputs.media }}"
+            "media_compressor_tag": "${{ steps.docker-tags.outputs.media }}"
           }
 
     - name: Wait for workflow to start
