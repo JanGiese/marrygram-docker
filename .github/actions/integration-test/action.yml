@@ -4,10 +4,77 @@ inputs:
   password:
     description: 'Password for the container registry'
     required: true
+  issue_number:
+    description: 'The PR number triggering this build'
+  repo:
+    description: 'Repository triggering this build'
+  repo_owner:
+    description: 'Owner of the repository triggering this build'
 
 runs:
   using: "composite"
   steps:
+    - name: Resolve docker tags from PR comment
+      id: docker-tags
+      if: inputs.issue_number
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{inputs.password}}
+        script: |
+          const owner = inputs.repo_owner;
+          const repo = inputs.repo;
+          const issue_number = inputs.issue_number;
+
+          const marker = '<!-- integration-test-docker-tags -->';
+
+          const defaultTags = {
+            frontend: 'latest',
+            backend: 'development',
+            media: 'latest',
+          };
+
+          const { data: comments } = await github.rest.issues.listComments({
+            owner,
+            repo,
+            issue_number,
+          });
+
+          let comment = comments.find(c => c.body.includes(marker));
+
+          if (!comment) {
+            const body = `
+          ${marker}
+          **Integration test docker images**
+
+          - marrygram-frontend: \`${defaultTags.frontend}\`
+          - marrygram-backend: \`${defaultTags.backend}\`
+          - marrygram-media-compressor: \`${defaultTags.media}\`
+          `;
+
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number,
+              body,
+            });
+
+            core.setOutput('frontend', defaultTags.frontend);
+            core.setOutput('backend', defaultTags.backend);
+            core.setOutput('media', defaultTags.media);
+            return;
+          }
+
+          const extract = (name) => {
+            const match = comment.body.match(
+              new RegExp(`${name}:\\s*\\\`([^\\\`]+)\\\``)
+            );
+            return match ? match[1] : null;
+          };
+
+          core.setOutput('frontend', extract('marrygram-frontend') ?? defaultTags.frontend);
+          core.setOutput('backend', extract('marrygram-backend') ?? defaultTags.backend);
+          core.setOutput('media', extract('marrygram-media-compressor') ?? defaultTags.media);
+
     - name: Trigger E2E tests
       uses: peter-evans/repository-dispatch@v3
       with:
