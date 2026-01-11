@@ -149,6 +149,7 @@ runs:
       with:
         github-token: ${{ inputs.password }}
         script: |
+          const inputs = ${{ toJSON(inputs) }};
           const owner = inputs.repo_owner;
           const repo = inputs.repo;
           const issue_number = inputs.issue_number;
