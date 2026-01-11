@@ -28,8 +28,16 @@ runs:
         github-token: ${{ inputs.password }}
         script: |
           const inputs = ${{ toJSON(inputs) }};
-          const owner = inputs.repo_owner;
-          const repo = inputs.repo;
+          let owner = inputs.repo_owner;
+          let repo = inputs.repo;
+          
+          // 🔒 Normalize repo if passed as owner/repo
+          if (repo && repo.includes('/')) {
+            const parts = repo.split('/');
+            owner = parts[0];
+            repo = parts[1];
+          }
+
           const issue_number = inputs.issue_number;
 
           const marker = '<!-- integration-test -->';
