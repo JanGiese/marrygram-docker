@@ -17,15 +17,9 @@ on:
         default: 'latest'
   repository_dispatch:
     types: [run-integration-tests]
-  push:
-    branches:
-      - main
-      - feature/*
-      - fix/*
   pull_request:
     branches:
       - main
-      - develop
 
 jobs:
   integration-tests:
@@ -50,7 +44,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.GHCR_TOKEN }}
 
       - name: Pull Docker images
         env:
