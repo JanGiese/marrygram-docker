@@ -43,9 +43,9 @@ runs:
           const marker = '<!-- integration-test -->';
   
           const defaultTags = {
-            frontend: 'development',
-            backend: 'development',
-            media: 'development',
+            frontend: 'latest',
+            backend: 'latest',
+            media: 'latest',
           };
             
           switch (repo) {
