@@ -106,6 +106,17 @@ runs:
           core.setOutput('backend', extract('marrygram-backend') ?? defaultTags.backend);
           core.setOutput('media', extract('marrygram-media-compressor') ?? defaultTags.media);
     
+    # ------------------------------------------------------------
+    # Set default tags when no issue_number provided
+    # ------------------------------------------------------------
+    - name: Set default tags to latest
+      id: default-tags
+      if: ${{ !inputs.issue_number }}
+      shell: bash
+      run: |
+        echo "frontend=latest" >> $GITHUB_OUTPUT
+        echo "backend=latest" >> $GITHUB_OUTPUT
+        echo "media=latest" >> $GITHUB_OUTPUT
 
     # ------------------------------------------------------------
     # Trigger E2E workflow
@@ -118,9 +129,9 @@ runs:
         event-type: run-integration-tests
         client-payload: |
           {
-            "frontend_tag": "${{ steps.docker-tags.outputs.frontend }}",
-            "backend_tag": "${{ steps.docker-tags.outputs.backend }}",
-            "media_compressor_tag": "${{ steps.docker-tags.outputs.media }}"
+            "frontend_tag": "${{ steps.docker-tags.outputs.frontend || steps.default-tags.outputs.frontend }}",
+            "backend_tag": "${{ steps.docker-tags.outputs.backend || steps.default-tags.outputs.backend }}",
+            "media_compressor_tag": "${{ steps.docker-tags.outputs.media || steps.default-tags.outputs.media }}"
           }
 
     - name: Wait for workflow to start
