@@ -14,3 +14,4 @@ CREATE TABLE core.guest
     qr_code_token varchar(255) NULL,
     CONSTRAINT guest_pkey PRIMARY KEY (id)
 );
+

@@ -5,8 +5,8 @@ const { defineConfig } = require('cypress');
 
 module.exports = defineConfig({
   e2e: {
-    baseUrl: process.env.CYPRESS_BASE_URL || 'http://localhost:4300',
-    apiUrl: process.env.CYPRESS_API_URL || 'http://localhost:8081',
+    baseUrl: process.env.CYPRESS_BASE_URL || 'http://localhost:4200',
+    apiUrl: process.env.CYPRESS_API_URL || 'http://localhost:8080',
     specPattern: 'cypress/e2e/**/*.cy.{js,jsx,ts,tsx}',
     supportFile: 'cypress/support/e2e.js',
     setupNodeEvents(on, config) {
@@ -31,7 +31,7 @@ module.exports = defineConfig({
       openMode: 0,
     },
     env: {
-      apiUrl: process.env.CYPRESS_API_URL || 'http://localhost:8081',
+      apiUrl: process.env.CYPRESS_API_URL || 'http://localhost:8080',
       // Add other environment variables here
       adminUsername: process.env.CYPRESS_ADMIN_USERNAME || 'admin',
       adminPassword: process.env.CYPRESS_ADMIN_PASSWORD || 'admin',
