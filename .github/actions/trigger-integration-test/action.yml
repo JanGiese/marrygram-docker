@@ -13,6 +13,9 @@ inputs:
   repo_owner:
     required: false
     description: 'The owner of the repository triggering this build'
+  branch:
+    required: false
+    description: 'The branch of the repository triggering this build'
 
 runs:
   using: "composite"
@@ -131,7 +134,8 @@ runs:
           {
             "frontend_tag": "${{ steps.docker-tags.outputs.frontend || steps.default-tags.outputs.frontend }}",
             "backend_tag": "${{ steps.docker-tags.outputs.backend || steps.default-tags.outputs.backend }}",
-            "media_compressor_tag": "${{ steps.docker-tags.outputs.media || steps.default-tags.outputs.media }}"
+            "media_compressor_tag": "${{ steps.docker-tags.outputs.media || steps.default-tags.outputs.media }}",
+            "branch": "${{ inputs.branch }}"
           }
 
     - name: Wait for workflow to start
