@@ -1,6 +1,9 @@
 name: 'Run Cypress Tests'
 description: 'Runs Cypress tests and uploads results'
 inputs:
+  working-directory:
+    required: false
+    default: '.'
   artifact-retention-days:
     default: '7'
     required: false
@@ -32,6 +35,7 @@ runs:
     - name: Run Cypress tests
       shell: bash
       run: npm run test
+      working-directory: ${{ inputs.working-directory }}
       env:
         CYPRESS_RABBITMQ_MGMT_URL: ${{ inputs.rabbitmq-mgmt-url }}
         CYPRESS_MINIO_URL: ${{ inputs.minio-url }}
