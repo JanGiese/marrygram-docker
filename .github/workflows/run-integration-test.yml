@@ -4,12 +4,12 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches: [main, feture/*, feature/*]
+    branches: [main]
   workflow_dispatch:
 
 jobs:
   integration-tests:
-    uses: JanGiese/marrygram-docker/.github/workflows/integration-test.yml@feture/restructure_workflows_and_actions
+    uses: JanGiese/marrygram-docker/.github/workflows/integration-test.yml@main
     secrets:
       PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
       GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
