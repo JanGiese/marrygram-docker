@@ -12,3 +12,4 @@ jobs:
     uses: JanGiese/marrygram-docker/.github/workflows/integration-test.yml@feture/restructure_workflows_and_actions
     secrets:
       PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
+      GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}

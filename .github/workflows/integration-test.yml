@@ -5,6 +5,8 @@ on:
     secrets:
       PAT_TOKEN:
         required: true
+      GHCR_TOKEN:
+        required: true
 
 jobs:
   # ============================================================
@@ -59,7 +61,7 @@ jobs:
           backend-tag:  ${{ needs.resolve-tags.outputs.backend }}
           media-compressor-tag: ${{ needs.resolve-tags.outputs.media }}
           compose-files: integration-tests/compose.yml -f integration-tests/compose.test.yml
-          ghcr-token: ${{ secrets.PAT_TOKEN }}
+          ghcr-token: ${{ secrets.GHCR_TOKEN }}
           ghcr-username: ${{ github.actor }}
           health-check-url: 'http://localhost:4300'
           health-check-timeout: '120'
