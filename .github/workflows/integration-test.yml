@@ -1,4 +1,4 @@
-name: Trigger Integration Tests
+name: Integration Tests
 
 on:
   pull_request:
@@ -23,7 +23,6 @@ jobs:
       comment_id: ${{ steps.out.outputs.comment_id }}
 
     steps:
-      # Resolve docker tags from PR comment
       - name: Resolve docker tags
         id: tags
         if: github.event.pull_request
@@ -34,13 +33,11 @@ jobs:
           repo: ${{ github.event.repository.name }}
           repo_owner: ${{ github.repository_owner }}
 
-      # Default tags when not running from PR
       - name: Default docker tags
         id: defaults
         if: ${{ !github.event.pull_request }}
         uses: JanGiese/marrygram-docker/.github/actions/default-docker-tags@feture/restructure_workflows_and_actions
 
-      # Normalize outputs (always set job outputs)
       - name: Set job outputs
         id: out
         shell: bash
@@ -51,32 +48,39 @@ jobs:
           echo "comment_id=${{ steps.tags.outputs.comment_id }}" >> $GITHUB_OUTPUT
 
   # ============================================================
-  # Job 2: Trigger & wait for integration tests
+  # Job 2: Run integration tests from marrygram-docker repo
   # ============================================================
   run-integration:
     needs: resolve-tags
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      # ----------------------------------------------------------
+      # Checkout integration-test repository
+      # ----------------------------------------------------------
+      - name: Checkout integration tests
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.client_payload.branch || github.ref }}
+          repository: JanGiese/marrygram-docker
+          ref: feture/restructure_workflows_and_actions
+          path: integration-tests
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version-file: '.nvmrc'
+          node-version-file: integration-tests/.nvmrc
           cache: 'npm'
+          cache-dependency-path: integration-tests/package-lock.json
 
       - name: Install dependencies
+        working-directory: integration-tests
         run: npm ci
 
       - name: Setup and start Docker Compose services
-        uses: ./.github/actions/setup-docker-compose
+        uses: ./integration-tests/.github/actions/setup-docker-compose
         with:
           frontend-tag: ${{ needs.resolve-tags.outputs.frontend }}
-          backend-tag: ${{ needs.resolve-tags.outputs.backend }}
+          backend-tag:  ${{ needs.resolve-tags.outputs.backend }}
           media-compressor-tag: ${{ needs.resolve-tags.outputs.media }}
           compose-files: 'compose.yml -f compose.test.yml'
           ghcr-token: ${{ secrets.GHCR_TOKEN }}
@@ -85,7 +89,7 @@ jobs:
           health-check-timeout: '120'
 
       - name: Run Cypress tests
-        uses: ./.github/actions/run-cypress-tests
+        uses: ./integration-tests/.github/actions/run-cypress-tests
         with:
           base-url: 'http://localhost:4300'
           api-url: 'http://localhost:8081'
@@ -96,13 +100,13 @@ jobs:
 
       - name: Collect Docker logs on failure
         if: failure()
-        uses: ./.github/actions/collect-docker-logs
+        uses: ./integration-tests/.github/actions/collect-docker-logs
         with:
           containers: 'marrygram-backend,marrygram-frontend,marrygram-media-compressor,marrygram-db,marrygram-storage,marrygram-rabbitmq'
 
       - name: Cleanup Docker Compose
         if: always()
-        uses: ./.github/actions/cleanup-docker-compose
+        uses: ./integration-tests/.github/actions/cleanup-docker-compose
         with:
           compose-files: 'compose.yml -f compose.test.yml'
           remove-volumes: 'true'
@@ -134,4 +138,3 @@ jobs:
         if: needs.run-integration.result != 'success'
         shell: bash
         run: exit 1
-
