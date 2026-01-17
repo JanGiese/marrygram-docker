@@ -11,11 +11,70 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Run integration tests
-        uses: JanGiese/marrygram-docker/.github/actions/trigger-integration-test@feture/restructure_workflows_and_actions
+      # ------------------------------------------------------------
+      # Resolve docker tags from PR comment (or create it)
+      # ------------------------------------------------------------
+      - name: Resolve docker tags
+        id: tags
+        if: github.event.pull_request
+        uses: JanGiese/marrygram-docker/.github/actions/resolve-docker-tags@feture/restructure_workflows_and_actions
         with:
-          password: ${{ secrets.PAT_TOKEN }}
+          token: ${{ secrets.PAT_TOKEN }}
           issue_number: ${{ github.event.pull_request.number }}
-          repo: ${{ github.repository }}
+          repo: ${{ github.event.repository.name }}
           repo_owner: ${{ github.repository_owner }}
+
+      # ------------------------------------------------------------
+      # Default tags when not running from PR
+      # ------------------------------------------------------------
+      - name: Default docker tags
+        id: defaults
+        if: ${{ !github.event.pull_request }}
+        uses: JanGiese/marrygram-docker/.github/actions/default-docker-tags@feture/restructure_workflows_and_actions
+
+      # ------------------------------------------------------------
+      # Trigger integration tests
+      # ------------------------------------------------------------
+      - name: Trigger integration tests
+        uses: JanGiese/marrygram-docker/.github/actions/trigger-integration-tests@feture/restructure_workflows_and_actions
+        with:
+          token: ${{ secrets.PAT_TOKEN }}
+          frontend_tag: ${{ steps.tags.outputs.frontend || steps.defaults.outputs.frontend }}
+          backend_tag:  ${{ steps.tags.outputs.backend  || steps.defaults.outputs.backend }}
+          media_tag:    ${{ steps.tags.outputs.media    || steps.defaults.outputs.media }}
           branch: ${{ github.head_ref }}
+
+      # ------------------------------------------------------------
+      # Wait for integration workflow to complete
+      # ------------------------------------------------------------
+      - name: Wait for integration tests
+        id: wait
+        uses: JanGiese/marrygram-docker/.github/actions/wait-for-workflow@feture/restructure_workflows_and_actions
+        with:
+          token: ${{ secrets.PAT_TOKEN }}
+
+      # ------------------------------------------------------------
+      # Update PR comment with result
+      # ------------------------------------------------------------
+      - name: Update PR comment
+        if: github.event.pull_request
+        uses: JanGiese/marrygram-docker/.github/actions/update-integration-comment@feture/restructure_workflows_and_actions
+        with:
+          token: ${{ secrets.PAT_TOKEN }}
+          repo: ${{ github.event.repository.name }}
+          repo_owner: ${{ github.repository_owner }}
+          issue_number: ${{ github.event.pull_request.number }}
+          comment_id: ${{ steps.tags.outputs.comment_id }}
+          frontend: ${{ steps.tags.outputs.frontend }}
+          backend:  ${{ steps.tags.outputs.backend }}
+          media:    ${{ steps.tags.outputs.media }}
+          run_id: ${{ steps.wait.outputs.run_id }}
+          conclusion: ${{ steps.wait.outputs.conclusion }}
+
+      # ------------------------------------------------------------
+      # Fail job if integration tests failed
+      # ------------------------------------------------------------
+      - name: Fail if integration tests failed
+        if: steps.wait.outputs.conclusion != 'success'
+        shell: bash
+        run: exit 1

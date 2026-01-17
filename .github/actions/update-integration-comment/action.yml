@@ -1,0 +1,56 @@
+name: Update integration comment
+
+inputs:
+  token:
+    required: true
+  repo:
+    required: true
+  repo_owner:
+    required: true
+  issue_number:
+    required: true
+  comment_id:
+    required: true
+  frontend:
+    required: true
+  backend:
+    required: true
+  media:
+    required: true
+  run_id:
+    required: true
+  conclusion:
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/github-script@v7
+      with:
+        github-token: ${{ inputs.token }}
+        script: |
+          const statusLine = inputs.conclusion === 'success'
+            ? '✅ **Integration tests passed**'
+            : '❌ **Integration tests failed**';
+
+          const body = `
+          <!-- integration-test -->
+          ### 🧪 Integration tests
+
+          **Docker images**
+          - marrygram-frontend: \`${inputs.frontend}\`
+          - marrygram-backend: \`${inputs.backend}\`
+          - marrygram-media-compressor: \`${inputs.media}\`
+
+          **Status**
+          ${statusLine}
+
+          🔗 https://github.com/jangiese/marrygram-docker/actions/runs/${inputs.run_id}
+          `;
+
+          await github.rest.issues.updateComment({
+            owner: inputs.repo_owner,
+            repo: inputs.repo,
+            comment_id: inputs.comment_id,
+            body
+          });
