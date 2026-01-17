@@ -3,6 +3,8 @@ name: Integration Tests
 on:
   pull_request:
     branches: [main]
+  push:
+    branches: [main, feture/*, feature/*]
   workflow_dispatch:
 
 jobs:
@@ -10,7 +12,7 @@ jobs:
     uses: JanGiese/marrygram-docker/.github/workflows/integration-test.yml@feture/restructure_workflows_and_actions
     with:
       issue_number: ${{ github.event.pull_request.number }}
-      repo: ${{ github.repository }}
+      repo: ${{ github.repository_id }}
       repo_owner: ${{ github.repository_owner }}
       branch: ${{ github.head_ref || github.ref_name }}
     secrets:
