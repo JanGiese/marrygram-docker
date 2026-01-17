@@ -3,6 +3,8 @@ name: Resolve docker tags
 inputs:
   token:
     required: true
+  commit_tag:
+    required: false
 
 outputs:
   frontend:
@@ -24,12 +26,14 @@ runs:
         REPO_OWNER: ${{ github.repository_owner }}
         REPO: ${{ github.repository }}
         ISSUE_NUMBER: ${{ github.event.pull_request.number }}
+        COMMIT_TAG: ${{ inputs.commit_tag }}
       with:
         github-token: ${{ inputs.token }}
         script: |
           const owner = process.env.REPO_OWNER;
           const repo = process.env.REPO.replace(owner + '/', '');
           const issue_number = Number(process.env.ISSUE_NUMBER);
+          const commitTag = process.env.COMMIT_TAG;
 
           const marker = '<!-- integration-test -->';
 
@@ -39,9 +43,9 @@ runs:
             media: 'latest',
           };
 
-          if (repo === 'marrygram-backend') defaultTags.backend = 'development';
-          if (repo === 'marrygram-frontend') defaultTags.frontend = 'development';
-          if (repo === 'marrygram-media-compressor') defaultTags.media = 'development';
+          if (repo === 'marrygram-backend') defaultTags.backend = commitTag ? commitTag : 'development';
+          if (repo === 'marrygram-frontend') defaultTags.frontend = commitTag ? commitTag : 'development';
+          if (repo === 'marrygram-media-compressor') defaultTags.media = commitTag ? commitTag : 'development';
 
           const { data: comments } = await github.rest.issues.listComments({
             owner,

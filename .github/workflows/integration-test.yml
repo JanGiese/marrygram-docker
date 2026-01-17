@@ -2,6 +2,10 @@ name: Integration Tests Workflow
 
 on:
   workflow_call:
+    inputs:
+      commit_tag:
+        required: false
+        type: string
     secrets:
       PAT_TOKEN:
         required: true
@@ -16,8 +20,8 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       frontend: ${{ steps.out.outputs.frontend }}
-      backend:  ${{ steps.out.outputs.backend }}
-      media:    ${{ steps.out.outputs.media }}
+      backend: ${{ steps.out.outputs.backend }}
+      media: ${{ steps.out.outputs.media }}
       comment_id: ${{ steps.out.outputs.comment_id }}
 
     steps:
@@ -26,6 +30,7 @@ jobs:
         id: tags
         with:
           token: ${{ secrets.PAT_TOKEN }}
+          commit_tag: ${{ inputs.commit_tag }}
 
       - name: Set job outputs
         id: out
@@ -58,7 +63,7 @@ jobs:
         uses: JanGiese/marrygram-docker/.github/actions/setup-docker-compose@feture/restructure_workflows_and_actions
         with:
           frontend-tag: ${{ needs.resolve-tags.outputs.frontend }}
-          backend-tag:  ${{ needs.resolve-tags.outputs.backend }}
+          backend-tag: ${{ needs.resolve-tags.outputs.backend }}
           media-compressor-tag: ${{ needs.resolve-tags.outputs.media }}
           compose-files: integration-tests/compose.yml -f integration-tests/compose.test.yml
           ghcr-token: ${{ secrets.GHCR_TOKEN }}
@@ -99,7 +104,7 @@ jobs:
   # Job 3: Update PR comment + fail on error
   # ============================================================
   update-comment:
-    needs: [resolve-tags, run-integration]
+    needs: [ resolve-tags, run-integration ]
     if: github.event.pull_request.number
     runs-on: ubuntu-latest
 
@@ -113,8 +118,8 @@ jobs:
           issue_number: ${{ github.event.pull_request.number }}
           comment_id: ${{ needs.resolve-tags.outputs.comment_id }}
           frontend: ${{ needs.resolve-tags.outputs.frontend }}
-          backend:  ${{ needs.resolve-tags.outputs.backend }}
-          media:    ${{ needs.resolve-tags.outputs.media }}
+          backend: ${{ needs.resolve-tags.outputs.backend }}
+          media: ${{ needs.resolve-tags.outputs.media }}
           run_id: ${{ github.run_id }}
           conclusion: ${{ needs.run-integration.result }}
 
