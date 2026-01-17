@@ -1,5 +1,31 @@
 name: 'Run Cypress Tests'
 description: 'Runs Cypress tests and uploads results'
+inputs:
+  artifact-retention-days:
+    default: '7'
+    required: false
+    description: 'Days to retain test artifacts'
+  upload-artifacts:
+    default: 'true'
+    required: false
+    description: 'Whether to upload test artifacts'
+  rabbitmq-mgmt-url:
+    default: 'http://localhost:15672'
+    required: false
+    description: 'RabbitMQ Management URL for Cypress'
+  minio-url:
+    default: 'http://localhost:9000'
+    required: false
+    description: 'MinIO URL for Cypress'
+  api-url:
+    default: 'http://localhost:8081'
+    required: false
+    description: 'API URL for Cypress'
+  base-url:
+    default: 'http://localhost:4300'
+    required: false
+    description: 'Cypress base URL'
+
 runs:
   using: 'composite'
   steps:
@@ -29,29 +55,3 @@ runs:
         name: test-reports
         path: cypress/results
         retention-days: ${{ inputs.artifact-retention-days }}
-
-inputs:
-  artifact-retention-days:
-    default: '7'
-    required: false
-    description: 'Days to retain test artifacts'
-  upload-artifacts:
-    default: 'true'
-    required: false
-    description: 'Whether to upload test artifacts'
-  rabbitmq-mgmt-url:
-    default: 'http://localhost:15672'
-    required: false
-    description: 'RabbitMQ Management URL for Cypress'
-  minio-url:
-    default: 'http://localhost:9000'
-    required: false
-    description: 'MinIO URL for Cypress'
-  api-url:
-    default: 'http://localhost:8081'
-    required: false
-    description: 'API URL for Cypress'
-  base-url:
-    default: 'http://localhost:4300'
-    required: false
-    description: 'Cypress base URL'
