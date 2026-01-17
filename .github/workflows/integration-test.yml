@@ -82,7 +82,7 @@ jobs:
           frontend-tag: ${{ needs.resolve-tags.outputs.frontend }}
           backend-tag:  ${{ needs.resolve-tags.outputs.backend }}
           media-compressor-tag: ${{ needs.resolve-tags.outputs.media }}
-          compose-files: 'compose.yml -f compose.test.yml'
+          compose-files: 'integration-tests/compose.yml -f integration-tests/compose.test.yml'
           ghcr-token: ${{ secrets.GHCR_TOKEN }}
           ghcr-username: ${{ github.actor }}
           health-check-url: 'http://localhost:4300'
@@ -108,7 +108,7 @@ jobs:
         if: always()
         uses: ./integration-tests/.github/actions/cleanup-docker-compose
         with:
-          compose-files: 'compose.yml -f compose.test.yml'
+          compose-files: 'integration-tests/compose.yml -f integration-tests/compose.test.yml'
           remove-volumes: 'true'
 
   # ============================================================
