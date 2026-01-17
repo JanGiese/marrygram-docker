@@ -1,0 +1,25 @@
+name: 'Cleanup Docker Compose'
+description: 'Stops and removes Docker Compose services and volumes'
+
+inputs:
+  compose-files:
+    description: 'Docker Compose files to use'
+    required: false
+    default: 'compose.yml -f compose.test.yml'
+  remove-volumes:
+    description: 'Whether to remove volumes'
+    required: false
+    default: 'true'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Stop and remove Docker Compose services
+      shell: bash
+      run: |
+        if [ "${{ inputs.remove-volumes }}" == "true" ]; then
+          docker compose -f ${{ inputs.compose-files }} down -v
+        else
+          docker compose -f ${{ inputs.compose-files }} down
+        fi
+

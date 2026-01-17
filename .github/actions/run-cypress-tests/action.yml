@@ -1,0 +1,57 @@
+name: 'Run Cypress Tests'
+description: 'Runs Cypress tests and uploads results'
+runs:
+  using: 'composite'
+  steps:
+    - name: Run Cypress tests
+      shell: bash
+      run: npm run test
+      env:
+        CYPRESS_RABBITMQ_MGMT_URL: ${{ inputs.rabbitmq-mgmt-url }}
+        CYPRESS_MINIO_URL: ${{ inputs.minio-url }}
+        CYPRESS_API_URL: ${{ inputs.api-url }}
+        CYPRESS_BASE_URL: ${{ inputs.base-url }}
+
+    - name: Upload test results
+      if: always() && inputs.upload-artifacts == 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: cypress-results
+        path: |
+          cypress/screenshots
+          cypress/videos
+        retention-days: ${{ inputs.artifact-retention-days }}
+
+    - name: Upload test report
+      if: always() && inputs.upload-artifacts == 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-reports
+        path: cypress/results
+        retention-days: ${{ inputs.artifact-retention-days }}
+
+inputs:
+  artifact-retention-days:
+    default: '7'
+    required: false
+    description: 'Days to retain test artifacts'
+  upload-artifacts:
+    default: 'true'
+    required: false
+    description: 'Whether to upload test artifacts'
+  rabbitmq-mgmt-url:
+    default: 'http://localhost:15672'
+    required: false
+    description: 'RabbitMQ Management URL for Cypress'
+  minio-url:
+    default: 'http://localhost:9000'
+    required: false
+    description: 'MinIO URL for Cypress'
+  api-url:
+    default: 'http://localhost:8081'
+    required: false
+    description: 'API URL for Cypress'
+  base-url:
+    default: 'http://localhost:4300'
+    required: false
+    description: 'Cypress base URL'
