@@ -41,18 +41,18 @@ runs:
           // Repo → image mapping
           // --------------------------------------------------
           const IMAGE_MAP = {
-          'marrygram-frontend': 'marrygram-frontend',
-          'marrygram-backend': 'marrygram-backend',
-          'marrygram-media-compressor': 'marrygram-media-compressor',
+            'marrygram-frontend': 'marrygram-frontend',
+            'marrygram-backend': 'marrygram-backend',
+            'marrygram-media-compressor': 'marrygram-media-compressor',
           };
           
           // --------------------------------------------------
           // Defaults
           // --------------------------------------------------
           const tags = {
-          frontend: 'latest',
-          backend: 'latest',
-          media: 'latest',
+            frontend: 'latest',
+            backend: 'latest',
+            media: 'latest',
           };
           
           // Update only the image that belongs to *this* repo
@@ -64,9 +64,9 @@ runs:
           // Fetch existing comment
           // --------------------------------------------------
           const { data: comments } = await github.rest.issues.listComments({
-          owner,
-          repo,
-          issue_number,
+            owner,
+            repo,
+            issue_number,
           });
           
           let comment = comments.find(c => c.body?.includes(marker));
@@ -81,9 +81,9 @@ runs:
           // Merge with existing values if present
           // --------------------------------------------------
           if (comment) {
-          tags.frontend = extract(comment.body, 'marrygram-frontend') ?? tags.frontend;
-          tags.backend  = extract(comment.body, 'marrygram-backend')  ?? tags.backend;
-          tags.media    = extract(comment.body, 'marrygram-media-compressor') ?? tags.media;
+            tags.frontend = extract(comment.body, 'marrygram-frontend') ?? tags.frontend;
+            tags.backend  = extract(comment.body, 'marrygram-backend')  ?? tags.backend;
+            tags.media    = extract(comment.body, 'marrygram-media-compressor') ?? tags.media;
           }
           
           // --------------------------------------------------
@@ -106,21 +106,21 @@ runs:
           // Create or update comment
           // --------------------------------------------------
           if (!comment) {
-          comment = (
-          await github.rest.issues.createComment({
-          owner,
-          repo,
-          issue_number,
-          body,
-          })
-          ).data;
+            comment = (
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number,
+              body,
+            })
+            ).data;
           } else {
-          await github.rest.issues.updateComment({
-          owner,
-          repo,
-          comment_id: comment.id,
-          body,
-          });
+            await github.rest.issues.updateComment({
+              owner,
+              repo,
+              comment_id: comment.id,
+              body,
+            });
           }
           
           // --------------------------------------------------
