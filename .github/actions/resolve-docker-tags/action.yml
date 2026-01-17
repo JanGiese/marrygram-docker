@@ -25,12 +25,17 @@ runs:
   steps:
     - id: tags
       uses: actions/github-script@v7
+      env:
+        REPO_OWNER: ${{ inputs.repo_owner }}
+        REPO: ${{ inputs.repo }}
+        ISSUE_NUMBER: ${{ inputs.issue_number }}
       with:
         github-token: ${{ inputs.token }}
         script: |
-          const owner = inputs.repo_owner;
-          const repo = inputs.repo;
-          const issue_number = inputs.issue_number;
+          const owner = process.env.REPO_OWNER;
+          const repo = process.env.REPO;
+          const issue_number = Number(process.env.ISSUE_NUMBER);
+
           const marker = '<!-- integration-test -->';
 
           const defaultTags = {
@@ -44,7 +49,9 @@ runs:
           if (repo === 'marrygram-media-compressor') defaultTags.media = 'development';
 
           const { data: comments } = await github.rest.issues.listComments({
-            owner, repo, issue_number
+            owner,
+            repo,
+            issue_number,
           });
 
           let comment = comments.find(c => c.body?.includes(marker));
@@ -62,9 +69,15 @@ runs:
             **Status**
             ⏳ Waiting for results...
             `;
-            comment = (await github.rest.issues.createComment({
-              owner, repo, issue_number, body
-            })).data;
+
+            comment = (
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number,
+                body,
+              })
+            ).data;
           }
 
           const extract = (name) =>
@@ -74,3 +87,4 @@ runs:
           core.setOutput('frontend', extract('marrygram-frontend') ?? defaultTags.frontend);
           core.setOutput('backend', extract('marrygram-backend') ?? defaultTags.backend);
           core.setOutput('media', extract('marrygram-media-compressor') ?? defaultTags.media);
+
