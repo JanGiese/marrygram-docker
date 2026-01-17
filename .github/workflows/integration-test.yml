@@ -45,11 +45,6 @@ jobs:
           repo: ${{ inputs.repo }}
           repo_owner: ${{ inputs.repo_owner }}
 
-      - name: Default docker tags
-        uses: JanGiese/marrygram-docker/.github/actions/default-docker-tags@feture/restructure_workflows_and_actions
-        id: defaults
-        if: ${{ !inputs.issue_number }}
-
       - name: Set job outputs
         id: out
         shell: bash

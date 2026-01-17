@@ -6,11 +6,11 @@ inputs:
 
 outputs:
   frontend:
-    value: ${{ steps.tags.outputs.frontend }}
+    value: ${{ steps.tags.outputs.frontend || steps.tags-default.outputs.frontend  }}
   backend:
-    value: ${{ steps.tags.outputs.backend }}
+    value: ${{ steps.tags.outputs.backend || steps.tags-default.outputs.backend }}
   media:
-    value: ${{ steps.tags.outputs.media }}
+    value: ${{ steps.tags.outputs.media || steps.tags-default.outputs.media }}
   comment_id:
     value: ${{ steps.tags.outputs.comment_id }}
 
@@ -19,6 +19,7 @@ runs:
   steps:
     - id: tags
       uses: actions/github-script@v7
+      if: ${{ github.event.pull_request.number }}
       env:
         REPO_OWNER: ${{ github.repository_owner }}
         REPO: ${{ github.repository }}
@@ -81,4 +82,11 @@ runs:
           core.setOutput('frontend', extract('marrygram-frontend') ?? defaultTags.frontend);
           core.setOutput('backend', extract('marrygram-backend') ?? defaultTags.backend);
           core.setOutput('media', extract('marrygram-media-compressor') ?? defaultTags.media);
+    - shell: bash
+      if: ${{ !github.event.pull_request.number }}
+      id: tags-default
+      run: |
+        echo "frontend=latest" >> $GITHUB_OUTPUT
+        echo "backend=latest" >> $GITHUB_OUTPUT
+        echo "media=latest" >> $GITHUB_OUTPUT
 
