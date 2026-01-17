@@ -31,61 +31,107 @@ runs:
         github-token: ${{ inputs.token }}
         script: |
           const owner = process.env.REPO_OWNER;
-          const repo = process.env.REPO.replace(owner + '/', '');
+          const repo = process.env.REPO.replace(`${owner}/`, '');
           const issue_number = Number(process.env.ISSUE_NUMBER);
           const commitTag = process.env.COMMIT_TAG;
-
+          
           const marker = '<!-- integration-test -->';
-
-          const defaultTags = {
-            frontend: 'latest',
-            backend: 'latest',
-            media: 'latest',
+          
+          // --------------------------------------------------
+          // Repo → image mapping
+          // --------------------------------------------------
+          const IMAGE_MAP = {
+          'marrygram-frontend': 'marrygram-frontend',
+          'marrygram-backend': 'marrygram-backend',
+          'marrygram-media-compressor': 'marrygram-media-compressor',
           };
-
-          if (repo === 'marrygram-backend') defaultTags.backend = commitTag ? commitTag : 'development';
-          if (repo === 'marrygram-frontend') defaultTags.frontend = commitTag ? commitTag : 'development';
-          if (repo === 'marrygram-media-compressor') defaultTags.media = commitTag ? commitTag : 'development';
-
+          
+          // --------------------------------------------------
+          // Defaults
+          // --------------------------------------------------
+          const tags = {
+          frontend: 'latest',
+          backend: 'latest',
+          media: 'latest',
+          };
+          
+          // Update only the image that belongs to *this* repo
+          if (repo === 'marrygram-frontend') tags.frontend = commitTag ?? 'development';
+          if (repo === 'marrygram-backend') tags.backend = commitTag ?? 'development';
+          if (repo === 'marrygram-media-compressor') tags.media = commitTag ?? 'development';
+          
+          // --------------------------------------------------
+          // Fetch existing comment
+          // --------------------------------------------------
           const { data: comments } = await github.rest.issues.listComments({
-            owner,
-            repo,
-            issue_number,
+          owner,
+          repo,
+          issue_number,
           });
-
+          
           let comment = comments.find(c => c.body?.includes(marker));
-
-          if (!comment) {
-            const body = `
-            ${marker}
-            ### 🧪 Integration tests
-
-            **Docker images**
-            - marrygram-frontend: \`${defaultTags.frontend}\`
-            - marrygram-backend: \`${defaultTags.backend}\`
-            - marrygram-media-compressor: \`${defaultTags.media}\`
-
-            **Status**
-            ⏳ Waiting for results...
-            `;
-
-            comment = (
-              await github.rest.issues.createComment({
-                owner,
-                repo,
-                issue_number,
-                body,
-              })
-            ).data;
+          
+          // --------------------------------------------------
+          // Helper: extract existing tag
+          // --------------------------------------------------
+          const extract = (body, name) =>
+          body.match(new RegExp(`${name}:\\s*\\\`([^\\\`]+)`))?.[1];
+          
+          // --------------------------------------------------
+          // Merge with existing values if present
+          // --------------------------------------------------
+          if (comment) {
+          tags.frontend = extract(comment.body, 'marrygram-frontend') ?? tags.frontend;
+          tags.backend  = extract(comment.body, 'marrygram-backend')  ?? tags.backend;
+          tags.media    = extract(comment.body, 'marrygram-media-compressor') ?? tags.media;
           }
-
-          const extract = (name) =>
-            comment.body.match(new RegExp(`${name}:\\s*\\\`([^\\\`]+)`))?.[1];
-
+          
+          // --------------------------------------------------
+          // Render comment body
+          // --------------------------------------------------
+          const body = `
+          ${marker}
+          ### 🧪 Integration tests
+          
+          **Docker images**
+          - marrygram-frontend: \`${tags.frontend}\`
+          - marrygram-backend: \`${tags.backend}\`
+          - marrygram-media-compressor: \`${tags.media}\`
+          
+          **Status**
+          ⏳ Waiting for results...
+          `.trim();
+          
+          // --------------------------------------------------
+          // Create or update comment
+          // --------------------------------------------------
+          if (!comment) {
+          comment = (
+          await github.rest.issues.createComment({
+          owner,
+          repo,
+          issue_number,
+          body,
+          })
+          ).data;
+          } else {
+          await github.rest.issues.updateComment({
+          owner,
+          repo,
+          comment_id: comment.id,
+          body,
+          });
+          }
+          
+          // --------------------------------------------------
+          // Outputs
+          // --------------------------------------------------
           core.setOutput('comment_id', comment.id);
-          core.setOutput('frontend', extract('marrygram-frontend') ?? defaultTags.frontend);
-          core.setOutput('backend', extract('marrygram-backend') ?? defaultTags.backend);
-          core.setOutput('media', extract('marrygram-media-compressor') ?? defaultTags.media);
+          core.setOutput('frontend', tags.frontend);
+          core.setOutput('backend', tags.backend);
+          core.setOutput('media', tags.media);
+
+
     - shell: bash
       if: ${{ !github.event.pull_request.number }}
       id: tags-default
