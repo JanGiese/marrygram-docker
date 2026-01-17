@@ -12,7 +12,7 @@ jobs:
 
     steps:
       - name: Run integration tests
-        uses: JanGiese/marrygram-docker/.github/actions/trigger-integration-test@main
+        uses: JanGiese/marrygram-docker/.github/actions/trigger-integration-test@feture/restructure_workflows_and_actions
         with:
           password: ${{ secrets.PAT_TOKEN }}
           issue_number: ${{ github.event.pull_request.number }}
