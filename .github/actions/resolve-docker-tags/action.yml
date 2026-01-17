@@ -3,12 +3,6 @@ name: Resolve docker tags
 inputs:
   token:
     required: true
-  issue_number:
-    required: true
-  repo:
-    required: true
-  repo_owner:
-    required: true
 
 outputs:
   frontend:
