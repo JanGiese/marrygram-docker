@@ -123,10 +123,11 @@ jobs:
           frontend: ${{ needs.resolve-tags.outputs.frontend }}
           backend:  ${{ needs.resolve-tags.outputs.backend }}
           media:    ${{ needs.resolve-tags.outputs.media }}
-          run_id: ${{ needs.run-integration.outputs.run_id }}
-          conclusion: ${{ needs.run-integration.outputs.conclusion }}
+          run_id: ${{ github.run_id }}
+          conclusion: ${{ needs.run-integration.result }}
 
       - name: Fail if integration tests failed
-        if: needs.run-integration.outputs.conclusion != 'success'
+        if: needs.run-integration.result != 'success'
         shell: bash
         run: exit 1
+
