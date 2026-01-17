@@ -1,61 +1,18 @@
-name: Run Integration Tests
+name: Integration Tests
 
 on:
-  repository_dispatch:
-    types: [run-integration-tests]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
 
 jobs:
   integration-tests:
-    name: Run Integration Tests
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.client_payload.branch || github.ref }}
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: '.nvmrc'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Setup and start Docker Compose services
-        uses: ./.github/actions/setup-docker-compose
-        with:
-          frontend-tag: ${{ github.event.client_payload.frontend_tag }}
-          backend-tag: ${{ github.event.client_payload.backend_tag }}
-          media-compressor-tag: ${{ github.event.client_payload.media_compressor_tag }}
-          compose-files: 'compose.yml -f compose.test.yml'
-          ghcr-token: ${{ secrets.GHCR_TOKEN }}
-          ghcr-username: ${{ github.actor }}
-          health-check-url: 'http://localhost:4300'
-          health-check-timeout: '120'
-
-      - name: Run Cypress tests
-        uses: ./.github/actions/run-cypress-tests
-        with:
-          base-url: 'http://localhost:4300'
-          api-url: 'http://localhost:8081'
-          minio-url: 'http://localhost:9000'
-          rabbitmq-mgmt-url: 'http://localhost:15672'
-          upload-artifacts: 'true'
-          artifact-retention-days: '7'
-
-      - name: Collect Docker logs on failure
-        if: failure()
-        uses: ./.github/actions/collect-docker-logs
-        with:
-          containers: 'marrygram-backend,marrygram-frontend,marrygram-media-compressor,marrygram-db,marrygram-storage,marrygram-rabbitmq'
-
-      - name: Cleanup Docker Compose
-        if: always()
-        uses: ./.github/actions/cleanup-docker-compose
-        with:
-          compose-files: 'compose.yml -f compose.test.yml'
-          remove-volumes: 'true'
-
+    uses: JanGiese/marrygram-docker/.github/workflows/integration-test.yml@feture/restructure_workflows_and_actions
+    with:
+      frontend_tag: latest
+      backend_tag: latest
+      media_tag: latest
+      branch: ${{ github.head_ref || github.ref_name }}
+    secrets:
+      PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
+      GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}

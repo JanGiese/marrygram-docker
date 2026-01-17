@@ -1,14 +1,26 @@
-name: Integration Tests
+name: Reusable Integration Tests
 
 on:
-  pull_request:
-    branches:
-      - main
-  push:
-    branches:
-      - main
-      - feture/*
-  workflow_dispatch:
+  workflow_call:
+    inputs:
+      issue_number:
+        type: number
+        required: false
+      repo:
+        type: string
+        required: true
+      repo_owner:
+        type: string
+        required: true
+      branch:
+        type: string
+        required: false
+        default: main
+    secrets:
+      PAT_TOKEN:
+        required: true
+      GHCR_TOKEN:
+        required: true
 
 jobs:
   # ============================================================
@@ -24,19 +36,19 @@ jobs:
 
     steps:
       - name: Resolve docker tags
-        id: tags
-        if: github.event.pull_request
         uses: JanGiese/marrygram-docker/.github/actions/resolve-docker-tags@feture/restructure_workflows_and_actions
+        id: tags
+        if: inputs.issue_number
         with:
           token: ${{ secrets.PAT_TOKEN }}
-          issue_number: ${{ github.event.pull_request.number }}
-          repo: ${{ github.event.repository.name }}
-          repo_owner: ${{ github.repository_owner }}
+          issue_number: ${{ inputs.issue_number }}
+          repo: ${{ inputs.repo }}
+          repo_owner: ${{ inputs.repo_owner }}
 
       - name: Default docker tags
-        id: defaults
-        if: ${{ !github.event.pull_request }}
         uses: JanGiese/marrygram-docker/.github/actions/default-docker-tags@feture/restructure_workflows_and_actions
+        id: defaults
+        if: ${{ !inputs.issue_number }}
 
       - name: Set job outputs
         id: out
@@ -66,12 +78,12 @@ jobs:
           path: integration-tests
 
       - name: Setup and start Docker Compose services
-        uses: ./integration-tests/.github/actions/setup-docker-compose
+        uses: JanGiese/marrygram-docker/.github/actions/setup-docker-compose@feture/restructure_workflows_and_actions
         with:
           frontend-tag: ${{ needs.resolve-tags.outputs.frontend }}
           backend-tag:  ${{ needs.resolve-tags.outputs.backend }}
           media-compressor-tag: ${{ needs.resolve-tags.outputs.media }}
-          compose-files: 'integration-tests/compose.yml -f integration-tests/compose.test.yml'
+          compose-files: integration-tests/compose.yml -f integration-tests/compose.test.yml
           ghcr-token: ${{ secrets.GHCR_TOKEN }}
           ghcr-username: ${{ github.actor }}
           health-check-url: 'http://localhost:4300'
@@ -91,12 +103,6 @@ jobs:
       - name: Run Cypress tests
         uses: ./integration-tests/.github/actions/run-cypress-tests
         with:
-          base-url: 'http://localhost:4300'
-          api-url: 'http://localhost:8081'
-          minio-url: 'http://localhost:9000'
-          rabbitmq-mgmt-url: 'http://localhost:15672'
-          upload-artifacts: 'true'
-          artifact-retention-days: '7'
           working-directory: integration-tests
 
       - name: Collect Docker logs on failure
@@ -109,7 +115,7 @@ jobs:
         if: always()
         uses: ./integration-tests/.github/actions/cleanup-docker-compose
         with:
-          compose-files: 'integration-tests/compose.yml -f integration-tests/compose.test.yml'
+          compose-files: integration-tests/compose.yml -f integration-tests/compose.test.yml
           remove-volumes: 'true'
 
   # ============================================================
@@ -117,17 +123,17 @@ jobs:
   # ============================================================
   update-comment:
     needs: [resolve-tags, run-integration]
+    if: inputs.issue_number
     runs-on: ubuntu-latest
-    if: github.event.pull_request
 
     steps:
       - name: Update PR comment
         uses: JanGiese/marrygram-docker/.github/actions/update-integration-comment@feture/restructure_workflows_and_actions
         with:
           token: ${{ secrets.PAT_TOKEN }}
-          repo: ${{ github.event.repository.name }}
-          repo_owner: ${{ github.repository_owner }}
-          issue_number: ${{ github.event.pull_request.number }}
+          repo: ${{ inputs.repo }}
+          repo_owner: ${{ inputs.repo_owner }}
+          issue_number: ${{ inputs.issue_number }}
           comment_id: ${{ needs.resolve-tags.outputs.comment_id }}
           frontend: ${{ needs.resolve-tags.outputs.frontend }}
           backend:  ${{ needs.resolve-tags.outputs.backend }}
