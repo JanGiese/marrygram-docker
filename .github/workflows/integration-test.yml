@@ -2,20 +2,6 @@ name: Reusable Integration Tests
 
 on:
   workflow_call:
-    inputs:
-      issue_number:
-        type: number
-        required: false
-      repo:
-        type: string
-        required: true
-      repo_owner:
-        type: string
-        required: true
-      branch:
-        type: string
-        required: false
-        default: main
     secrets:
       PAT_TOKEN:
         required: true
@@ -114,7 +100,7 @@ jobs:
   # ============================================================
   update-comment:
     needs: [resolve-tags, run-integration]
-    if: inputs.issue_number
+    if: github.event.pull_request.number
     runs-on: ubuntu-latest
 
     steps:
@@ -122,9 +108,9 @@ jobs:
         uses: JanGiese/marrygram-docker/.github/actions/update-integration-comment@feture/restructure_workflows_and_actions
         with:
           token: ${{ secrets.PAT_TOKEN }}
-          repo: ${{ inputs.repo }}
-          repo_owner: ${{ inputs.repo_owner }}
-          issue_number: ${{ inputs.issue_number }}
+          repo: ${{ github.repository }}
+          repo_owner: ${{ github.repository_owner }}
+          issue_number: ${{ github.event.pull_request.number }}
           comment_id: ${{ needs.resolve-tags.outputs.comment_id }}
           frontend: ${{ needs.resolve-tags.outputs.frontend }}
           backend:  ${{ needs.resolve-tags.outputs.backend }}
