@@ -13,6 +13,7 @@ jobs:
       backend_tag: latest
       media_tag: latest
       branch: ${{ github.head_ref || github.ref_name }}
+      repo: ${{ github.repository }}
     secrets:
       PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
       GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
