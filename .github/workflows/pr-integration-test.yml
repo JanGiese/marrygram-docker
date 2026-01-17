@@ -57,20 +57,54 @@ jobs:
       conclusion: ${{ steps.wait.outputs.conclusion }}
 
     steps:
-      - name: Trigger integration tests
-        uses: JanGiese/marrygram-docker/.github/actions/trigger-integration-tests@feture/restructure_workflows_and_actions
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
-          token: ${{ secrets.PAT_TOKEN }}
-          frontend_tag: ${{ needs.resolve-tags.outputs.frontend }}
-          backend_tag:  ${{ needs.resolve-tags.outputs.backend }}
-          media_tag:    ${{ needs.resolve-tags.outputs.media }}
-          branch: ${{ github.head_ref }}
+          ref: ${{ github.event.client_payload.branch || github.ref }}
 
-      - name: Wait for integration tests
-        id: wait
-        uses: JanGiese/marrygram-docker/.github/actions/wait-for-workflow@feture/restructure_workflows_and_actions
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          token: ${{ secrets.PAT_TOKEN }}
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup and start Docker Compose services
+        uses: ./.github/actions/setup-docker-compose
+        with:
+          frontend-tag: ${{ github.event.client_payload.frontend_tag }}
+          backend-tag: ${{ github.event.client_payload.backend_tag }}
+          media-compressor-tag: ${{ github.event.client_payload.media_compressor_tag }}
+          compose-files: 'compose.yml -f compose.test.yml'
+          ghcr-token: ${{ secrets.GHCR_TOKEN }}
+          ghcr-username: ${{ github.actor }}
+          health-check-url: 'http://localhost:4300'
+          health-check-timeout: '120'
+
+      - name: Run Cypress tests
+        uses: ./.github/actions/run-cypress-tests
+        with:
+          base-url: 'http://localhost:4300'
+          api-url: 'http://localhost:8081'
+          minio-url: 'http://localhost:9000'
+          rabbitmq-mgmt-url: 'http://localhost:15672'
+          upload-artifacts: 'true'
+          artifact-retention-days: '7'
+
+      - name: Collect Docker logs on failure
+        if: failure()
+        uses: ./.github/actions/collect-docker-logs
+        with:
+          containers: 'marrygram-backend,marrygram-frontend,marrygram-media-compressor,marrygram-db,marrygram-storage,marrygram-rabbitmq'
+
+      - name: Cleanup Docker Compose
+        if: always()
+        uses: ./.github/actions/cleanup-docker-compose
+        with:
+          compose-files: 'compose.yml -f compose.test.yml'
+          remove-volumes: 'true'
 
   # ============================================================
   # Job 3: Update PR comment + fail on error
