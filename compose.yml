@@ -37,7 +37,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 40s
+      start_period: 60s
 
   media-compressor:
     image: ghcr.io/jangiese/marrygram-media-compressor:latest
@@ -57,7 +57,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 30s
+      start_period: 40s
 
   db:
     image: postgres:17
@@ -97,9 +97,10 @@ services:
     restart: always
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
 
 volumes:
   db-data:
