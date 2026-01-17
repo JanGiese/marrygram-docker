@@ -38,20 +38,16 @@ jobs:
       - name: Resolve docker tags
         uses: JanGiese/marrygram-docker/.github/actions/resolve-docker-tags@feture/restructure_workflows_and_actions
         id: tags
-        if: inputs.issue_number
         with:
           token: ${{ secrets.PAT_TOKEN }}
-          issue_number: ${{ inputs.issue_number }}
-          repo: ${{ inputs.repo }}
-          repo_owner: ${{ inputs.repo_owner }}
 
       - name: Set job outputs
         id: out
         shell: bash
         run: |
-          echo "frontend=${{ steps.tags.outputs.frontend || steps.defaults.outputs.frontend }}" >> $GITHUB_OUTPUT
-          echo "backend=${{ steps.tags.outputs.backend  || steps.defaults.outputs.backend  }}" >> $GITHUB_OUTPUT
-          echo "media=${{ steps.tags.outputs.media    || steps.defaults.outputs.media    }}" >> $GITHUB_OUTPUT
+          echo "frontend=${{ steps.tags.outputs.frontend }}" >> $GITHUB_OUTPUT
+          echo "backend=${{ steps.tags.outputs.backend }}" >> $GITHUB_OUTPUT
+          echo "media=${{ steps.tags.outputs.media }}" >> $GITHUB_OUTPUT
           echo "comment_id=${{ steps.tags.outputs.comment_id }}" >> $GITHUB_OUTPUT
 
   # ============================================================
