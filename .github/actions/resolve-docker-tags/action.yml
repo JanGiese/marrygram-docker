@@ -8,7 +8,7 @@ inputs:
 
 outputs:
   frontend:
-    value: ${{ steps.tags.outputs.frontend || steps.tags-default.outputs.frontend  }}
+    value: ${{ steps.tags.outputs.frontend || steps.tags-default.outputs.frontend }}
   backend:
     value: ${{ steps.tags.outputs.backend || steps.tags-default.outputs.backend }}
   media:
@@ -34,85 +34,77 @@ runs:
           const repo = process.env.REPO.replace(`${owner}/`, '');
           const issue_number = Number(process.env.ISSUE_NUMBER);
           const commitTag = process.env.COMMIT_TAG;
-          
+
           const marker = '<!-- integration-test -->';
-          
-          // --------------------------------------------------
-          // Repo → image mapping
-          // --------------------------------------------------
-          const IMAGE_MAP = {
-            'marrygram-frontend': 'marrygram-frontend',
-            'marrygram-backend': 'marrygram-backend',
-            'marrygram-media-compressor': 'marrygram-media-compressor',
-          };
-          
-          // --------------------------------------------------
+
+          // --------------------------------------------
           // Defaults
-          // --------------------------------------------------
+          // --------------------------------------------
           const tags = {
             frontend: 'latest',
             backend: 'latest',
             media: 'latest',
           };
-          
-          // Update only the image that belongs to *this* repo
-          if (repo === 'marrygram-frontend') tags.frontend = commitTag ?? 'development';
-          if (repo === 'marrygram-backend') tags.backend = commitTag ?? 'development';
-          if (repo === 'marrygram-media-compressor') tags.media = commitTag ?? 'development';
-          
-          // --------------------------------------------------
+
+          // --------------------------------------------
           // Fetch existing comment
-          // --------------------------------------------------
+          // --------------------------------------------
           const { data: comments } = await github.rest.issues.listComments({
             owner,
             repo,
             issue_number,
           });
-          
+
           let comment = comments.find(c => c.body?.includes(marker));
-          
-          // --------------------------------------------------
-          // Helper: extract existing tag
-          // --------------------------------------------------
+
+          // --------------------------------------------
+          // Extract existing values
+          // --------------------------------------------
           const extract = (body, name) =>
-          body.match(new RegExp(`${name}:\\s*\\\`([^\\\`]+)`))?.[1];
-          
-          // --------------------------------------------------
-          // Merge with existing values if present
-          // --------------------------------------------------
+            body?.match(new RegExp(`${name}:\\s*\\\`([^\\\`]+)`))?.[1];
+
           if (comment) {
             tags.frontend = extract(comment.body, 'marrygram-frontend') ?? tags.frontend;
             tags.backend  = extract(comment.body, 'marrygram-backend')  ?? tags.backend;
             tags.media    = extract(comment.body, 'marrygram-media-compressor') ?? tags.media;
           }
-          
-          // --------------------------------------------------
-          // Render comment body
-          // --------------------------------------------------
+
+          // --------------------------------------------
+          // FORCE commit tag for current repo
+          // --------------------------------------------
+          if (commitTag) {
+            if (repo === 'marrygram-frontend') tags.frontend = commitTag;
+            if (repo === 'marrygram-backend') tags.backend = commitTag;
+            if (repo === 'marrygram-media-compressor') tags.media = commitTag;
+          }
+
+          // --------------------------------------------
+          // Render comment
+          // --------------------------------------------
           const body = `
           ${marker}
           ### 🧪 Integration tests
-          
+
           **Docker images**
           - marrygram-frontend: \`${tags.frontend}\`
           - marrygram-backend: \`${tags.backend}\`
           - marrygram-media-compressor: \`${tags.media}\`
-          
+
           **Status**
           ⏳ Waiting for results...
           `.trim();
-          
-          // --------------------------------------------------
+
+          // --------------------------------------------
           // Create or update comment
-          // --------------------------------------------------
+          // --------------------------------------------
           if (!comment) {
             comment = (
-            await github.rest.issues.createComment({
-              owner,
-              repo,
-              issue_number,
-              body,
-            })
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number,
+                body,
+              })
             ).data;
           } else {
             await github.rest.issues.updateComment({
@@ -122,21 +114,19 @@ runs:
               body,
             });
           }
-          
-          // --------------------------------------------------
+
+          // --------------------------------------------
           // Outputs
-          // --------------------------------------------------
+          // --------------------------------------------
           core.setOutput('comment_id', comment.id);
           core.setOutput('frontend', tags.frontend);
           core.setOutput('backend', tags.backend);
           core.setOutput('media', tags.media);
 
-
-    - shell: bash
+    - id: tags-default
       if: ${{ !github.event.pull_request.number }}
-      id: tags-default
+      shell: bash
       run: |
         echo "frontend=latest" >> $GITHUB_OUTPUT
         echo "backend=latest" >> $GITHUB_OUTPUT
         echo "media=latest" >> $GITHUB_OUTPUT
-
