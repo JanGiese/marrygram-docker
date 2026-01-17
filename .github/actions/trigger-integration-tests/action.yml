@@ -1,0 +1,29 @@
+name: Trigger integration tests
+
+inputs:
+  token:
+    required: true
+  frontend_tag:
+    required: true
+  backend_tag:
+    required: true
+  media_tag:
+    required: true
+  branch:
+    required: false
+
+runs:
+  using: composite
+  steps:
+    - uses: peter-evans/repository-dispatch@v3
+      with:
+        repository: jangiese/marrygram-docker
+        token: ${{ inputs.token }}
+        event-type: run-integration-tests
+        client-payload: |
+          {
+            "frontend_tag": "${{ inputs.frontend_tag }}",
+            "backend_tag": "${{ inputs.backend_tag }}",
+            "media_compressor_tag": "${{ inputs.media_tag }}",
+            "branch": "${{ inputs.branch }}"
+          }

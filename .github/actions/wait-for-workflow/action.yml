@@ -1,0 +1,40 @@
+name: Wait for workflow completion
+
+inputs:
+  token:
+    required: true
+
+outputs:
+  run_id:
+    value: ${{ steps.run.outputs.run_id }}
+  conclusion:
+    value: ${{ steps.wait.outputs.conclusion }}
+
+runs:
+  using: composite
+  steps:
+    - id: run
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+      run: |
+        sleep 10
+        run_id=$(gh api /repos/jangiese/marrygram-docker/actions/runs \
+          --jq '.workflow_runs | map(select(.event=="repository_dispatch")) | .[0].id')
+        echo "run_id=$run_id" >> $GITHUB_OUTPUT
+
+    - id: wait
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        RUN_ID: ${{ steps.run.outputs.run_id }}
+      run: |
+        while true; do
+          status=$(gh api /repos/jangiese/marrygram-docker/actions/runs/$RUN_ID --jq '.status')
+          conclusion=$(gh api /repos/jangiese/marrygram-docker/actions/runs/$RUN_ID --jq '.conclusion')
+          if [ "$status" = "completed" ]; then
+            echo "conclusion=$conclusion" >> $GITHUB_OUTPUT
+            break
+          fi
+          sleep 30
+        done

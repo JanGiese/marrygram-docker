@@ -1,0 +1,129 @@
+name: Integration Tests Workflow
+
+on:
+  workflow_call:
+    inputs:
+      commit_tag:
+        required: false
+        type: string
+    secrets:
+      PAT_TOKEN:
+        required: true
+      GHCR_TOKEN:
+        required: true
+
+jobs:
+  # ============================================================
+  # Job 1: Resolve docker tags (or defaults)
+  # ============================================================
+  resolve-tags:
+    runs-on: ubuntu-latest
+    outputs:
+      frontend: ${{ steps.out.outputs.frontend }}
+      backend: ${{ steps.out.outputs.backend }}
+      media: ${{ steps.out.outputs.media }}
+      comment_id: ${{ steps.out.outputs.comment_id }}
+
+    steps:
+      - name: Resolve docker tags
+        uses: JanGiese/marrygram-docker/.github/actions/resolve-docker-tags@main
+        id: tags
+        with:
+          token: ${{ secrets.PAT_TOKEN }}
+          commit_tag: ${{ inputs.commit_tag }}
+
+      - name: Set job outputs
+        id: out
+        shell: bash
+        run: |
+          echo "frontend=${{ steps.tags.outputs.frontend }}" >> $GITHUB_OUTPUT
+          echo "backend=${{ steps.tags.outputs.backend }}" >> $GITHUB_OUTPUT
+          echo "media=${{ steps.tags.outputs.media }}" >> $GITHUB_OUTPUT
+          echo "comment_id=${{ steps.tags.outputs.comment_id }}" >> $GITHUB_OUTPUT
+
+  # ============================================================
+  # Job 2: Run integration tests from marrygram-docker repo
+  # ============================================================
+  run-integration:
+    needs: resolve-tags
+    runs-on: ubuntu-latest
+
+    steps:
+      # ----------------------------------------------------------
+      # Checkout integration-test repository
+      # ----------------------------------------------------------
+      - name: Checkout integration tests
+        uses: actions/checkout@v4
+        with:
+          repository: JanGiese/marrygram-docker
+          ref: main
+          path: integration-tests
+
+      - name: Setup and start Docker Compose services
+        uses: JanGiese/marrygram-docker/.github/actions/setup-docker-compose@main
+        with:
+          frontend-tag: ${{ needs.resolve-tags.outputs.frontend }}
+          backend-tag: ${{ needs.resolve-tags.outputs.backend }}
+          media-compressor-tag: ${{ needs.resolve-tags.outputs.media }}
+          compose-files: integration-tests/compose.yml -f integration-tests/compose.test.yml
+          ghcr-token: ${{ secrets.GHCR_TOKEN }}
+          ghcr-username: ${{ github.actor }}
+          health-check-url: 'http://localhost:4300'
+          health-check-timeout: '120'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: integration-tests/.nvmrc
+          cache: 'npm'
+          cache-dependency-path: integration-tests/package-lock.json
+
+      - name: Install dependencies
+        working-directory: integration-tests
+        run: npm ci
+
+      - name: Run Cypress tests
+        uses: ./integration-tests/.github/actions/run-cypress-tests
+        with:
+          working-directory: integration-tests
+
+      - name: Collect Docker logs on failure
+        if: failure()
+        uses: ./integration-tests/.github/actions/collect-docker-logs
+        with:
+          containers: 'marrygram-backend,marrygram-frontend,marrygram-media-compressor,marrygram-db,marrygram-storage,marrygram-rabbitmq'
+
+      - name: Cleanup Docker Compose
+        if: always()
+        uses: ./integration-tests/.github/actions/cleanup-docker-compose
+        with:
+          compose-files: integration-tests/compose.yml -f integration-tests/compose.test.yml
+          remove-volumes: 'true'
+
+  # ============================================================
+  # Job 3: Update PR comment + fail on error
+  # ============================================================
+  update-comment:
+    needs: [ resolve-tags, run-integration ]
+    if: github.event.pull_request.number
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Update PR comment
+        uses: JanGiese/marrygram-docker/.github/actions/update-integration-comment@main
+        with:
+          token: ${{ secrets.PAT_TOKEN }}
+          repo: ${{ github.repository }}
+          repo_owner: ${{ github.repository_owner }}
+          issue_number: ${{ github.event.pull_request.number }}
+          comment_id: ${{ needs.resolve-tags.outputs.comment_id }}
+          frontend: ${{ needs.resolve-tags.outputs.frontend }}
+          backend: ${{ needs.resolve-tags.outputs.backend }}
+          media: ${{ needs.resolve-tags.outputs.media }}
+          run_id: ${{ github.run_id }}
+          conclusion: ${{ needs.run-integration.result }}
+
+      - name: Fail if integration tests failed
+        if: needs.run-integration.result != 'success'
+        shell: bash
+        run: exit 1

@@ -1,0 +1,22 @@
+name: 'Collect Docker Logs'
+description: 'Collects logs from Docker containers for debugging'
+
+inputs:
+  containers:
+    description: 'Comma-separated list of container names'
+    required: false
+    default: 'marrygram-backend,marrygram-frontend,marrygram-media-compressor,marrygram-db,marrygram-storage,marrygram-rabbitmq'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Collect Docker logs
+      shell: bash
+      run: |
+        IFS=',' read -ra CONTAINERS <<< "${{ inputs.containers }}"
+        for container in "${CONTAINERS[@]}"; do
+          echo "=== ${container} Logs ==="
+          docker logs "${container}" || true
+          echo ""
+        done
+

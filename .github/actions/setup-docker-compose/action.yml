@@ -1,0 +1,71 @@
+name: 'Setup and Start Docker Compose Services'
+description: 'Pulls and starts Docker Compose services for integration testing'
+
+inputs:
+  frontend-tag:
+    description: 'Frontend Docker image tag'
+    required: true
+  backend-tag:
+    description: 'Backend Docker image tag'
+    required: true
+  media-compressor-tag:
+    description: 'Media Compressor Docker image tag'
+    required: true
+  compose-files:
+    description: 'Docker Compose files to use'
+    required: false
+    default: 'compose.yml -f compose.test.yml'
+  ghcr-token:
+    description: 'GitHub Container Registry token'
+    required: true
+  ghcr-username:
+    description: 'GitHub Container Registry username'
+    required: true
+  health-check-url:
+    description: 'URL to check for service readiness'
+    required: false
+    default: 'http://localhost:4300'
+  health-check-timeout:
+    description: 'Timeout for health check in seconds'
+    required: false
+    default: '120'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Log in to GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ inputs.ghcr-username }}
+        password: ${{ inputs.ghcr-token }}
+
+    - name: Export docker image tags
+      shell: bash
+      run: |
+        echo "FRONTEND_TAG=${{ inputs.frontend-tag }}" >> $GITHUB_ENV
+        echo "BACKEND_TAG=${{ inputs.backend-tag }}" >> $GITHUB_ENV
+        echo "MEDIA_COMPRESSOR_TAG=${{ inputs.media-compressor-tag }}" >> $GITHUB_ENV
+
+    - name: Pull Docker images
+      shell: bash
+      run: |
+        docker compose -f ${{ inputs.compose-files }} pull
+
+    - name: Create Docker network
+      shell: bash
+      run: |
+        docker network create nginx || true
+
+    - name: Start services
+      shell: bash
+      run: |
+        docker compose -f ${{ inputs.compose-files }} up -d
+
+    - name: Wait for services to be ready
+      shell: bash
+      run: |
+        echo "Waiting for services to be ready..."
+        timeout ${{ inputs.health-check-timeout }} bash -c 'until curl -f ${{ inputs.health-check-url }}; do sleep 2; done'
+        echo "✅ Services are ready!"
+
