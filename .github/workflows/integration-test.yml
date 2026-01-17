@@ -1,4 +1,4 @@
-name: Reusable Integration Tests
+name: Integration Tests Workflow
 
 on:
   workflow_call:
