@@ -33,11 +33,11 @@ services:
     extra_hosts:
       - "minio.jpgiese.com:host-gateway"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health/liveness"]
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health/liveness || wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health/liveness || exit 1"]
       interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 60s
+      timeout: 10s
+      retries: 10
+      start_period: 90s
 
   media-compressor:
     image: ghcr.io/jangiese/marrygram-media-compressor:latest
@@ -55,9 +55,9 @@ services:
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 40s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
 
   db:
     image: postgres:17
