@@ -33,7 +33,7 @@ runs:
         github-token: ${{ inputs.token }}
         script: |
           const owner = process.env.REPO_OWNER;
-          const repo = process.env.REPO;
+          const repo = process.env.REPO.replace(owner, '');
           const issue_number = Number(process.env.ISSUE_NUMBER);
 
           const marker = '<!-- integration-test -->';
