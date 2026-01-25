@@ -1,16 +1,17 @@
-const { defineConfig } = require('cypress');
+import { defineConfig } from 'cypress';
 
 // Node version specified in .nvmrc: 24.12.0
 // Cypress version: 15.8.2
 
-module.exports = defineConfig({
+export default defineConfig({
   e2e: {
-    baseUrl: process.env.CYPRESS_BASE_URL || 'http://localhost:4300',
-    apiUrl: process.env.CYPRESS_API_URL || 'http://localhost:8080',
+    baseUrl: process.env.CYPRESS_BASE_URL || 'http://localhost:4200',
     specPattern: 'cypress/e2e/**/*.cy.{js,jsx,ts,tsx}',
-    supportFile: 'cypress/support/e2e.js',
+    supportFile: 'cypress/support/e2e.ts',
     setupNodeEvents(on, config) {
       // implement node event listeners here
+      // Add apiUrl to config.env for access in tests
+      config.env.apiUrl = process.env.CYPRESS_API_URL || 'http://localhost:8080';
       return config;
     },
     video: true,
@@ -45,4 +46,3 @@ module.exports = defineConfig({
     specPattern: '**/*.cy.ts',
   },
 });
-

@@ -7,14 +7,15 @@
     "cypress:open": "cypress open",
     "cypress:run": "cypress run",
     "test": "cypress run",
-    "test:smoke": "cypress run --spec 'cypress/e2e/smoke/**/*.cy.js'",
-    "test:api": "cypress run --spec 'cypress/e2e/api/**/*.cy.js'",
-    "test:ui": "cypress run --spec 'cypress/e2e/ui/**/*.cy.js'",
-    "test:integration": "cypress run --spec 'cypress/e2e/integration/**/*.cy.js'",
+    "test:smoke": "cypress run --spec 'cypress/e2e/smoke/**/*.cy.{js,ts}'",
+    "test:api": "cypress run --spec 'cypress/e2e/api/**/*.cy.{js,ts}'",
+    "test:ui": "cypress run --spec 'cypress/e2e/ui/**/*.cy.{js,ts}'",
+    "test:integration": "cypress run --spec 'cypress/e2e/integration/**/*.cy.{js,ts}'",
     "test:headed": "cypress run --headed",
     "test:chrome": "cypress run --browser chrome",
     "test:firefox": "cypress run --browser firefox",
-    "test:edge": "cypress run --browser edge"
+    "test:edge": "cypress run --browser edge",
+    "typecheck": "tsc --noEmit"
   },
   "keywords": [
     "marrygram",
@@ -26,9 +27,11 @@
   "license": "ISC",
   "devDependencies": {
     "@faker-js/faker": "^9.3.0",
+    "@types/node": "^25.0.10",
     "cypress": "^15.8.2",
     "cypress-file-upload": "^5.0.8",
-    "cypress-wait-until": "^3.0.2"
+    "cypress-wait-until": "^3.0.2",
+    "typescript": "^5.9.3"
   },
   "engines": {
     "node": ">=24.12.0"

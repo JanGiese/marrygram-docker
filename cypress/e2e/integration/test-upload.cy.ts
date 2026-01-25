@@ -1,21 +1,22 @@
-const APP_FILE_INPUT_BUTTON = 'app-file-input-button:nth-child(1)';
+/// <reference types="cypress" />
 
-describe('Integration Tests - Test User media flow', () => {
-    const testTitle = 'Upload Integration Test';
-    const updatedTitle = 'Edited Title';
-    const testUserName = 'Test User';
+const APP_FILE_INPUT_BUTTON: string = 'app-file-input-button:nth-child(1)';
 
-    beforeEach(() => {
+describe('Integration Tests - Test User media flow', (): void => {
+    const testTitle: string = 'Upload Integration Test';
+    const updatedTitle: string = 'Edited Title';
+    const testUserName: string = 'Test User';
+
+    beforeEach((): void => {
         cy.loginTestUser();
     });
 
-    it('upload works', () => {
-        let fileInputApp = cy.get(APP_FILE_INPUT_BUTTON);
+    it('upload works', (): void => {
+        const fileInputApp = cy.get(APP_FILE_INPUT_BUTTON);
         fileInputApp.should('exist');
-        let fileInput = cy.get(`${APP_FILE_INPUT_BUTTON} input`);
+        const fileInput = cy.get(`${APP_FILE_INPUT_BUTTON} input`);
 
         fileInput.should('exist');
-
         fileInput.should('not.be.visible');
 
         cy.get(`${APP_FILE_INPUT_BUTTON} svg`).click();
@@ -34,10 +35,9 @@ describe('Integration Tests - Test User media flow', () => {
             .should('not.exist');
         getMediaBlockByIndex(1)
             .should('not.contain', 'Kein Vorschaubild verfügbar');
-    })
+    });
 
-
-    it('edit title works', () => {
+    it('edit title works', (): void => {
         const editTestMediaBlock = getMediaBlockByTitle(testTitle);
         editTestMediaBlock
             .within(() => {
@@ -51,14 +51,14 @@ describe('Integration Tests - Test User media flow', () => {
             .should('exist');
     });
 
-    it('edit cancel works', () => {
+    it('edit cancel works', (): void => {
         const editTestMediaBlock = getMediaBlockByTitle(updatedTitle);
         editTestMediaBlock
             .within(() => {
                 cy.get('.action-row > .action-buttons > .edit-btn svg').click();
             });
 
-        const cancelledTitle = 'Edited Title That Should Not Be Saved';
+        const cancelledTitle: string = 'Edited Title That Should Not Be Saved';
         inputTitle(cancelledTitle);
         const cancelButton = getCancelButton();
         cancelButton.click();
@@ -67,8 +67,23 @@ describe('Integration Tests - Test User media flow', () => {
             .should('exist');
     });
 
+    it('toggle like works', (): void => {
+        const toggleLikeTestMediaBlock = getMediaBlockByTitle(updatedTitle);
 
-    it('delete works', () => {
+        toggleLikeTestMediaBlock.dblclick();
+        toggleLikeTestMediaBlock.get('.action-row > .like-info > .heart-inline')
+            .should('have.class', 'is-liked');
+        toggleLikeTestMediaBlock.get('.action-row > .like-info > .heart-inline > .likes-count')
+            .contains('1');
+
+        toggleLikeTestMediaBlock.dblclick();
+        toggleLikeTestMediaBlock.get('.action-row > .like-info > .heart-inline')
+            .should('not.have.class', 'is-liked');
+        toggleLikeTestMediaBlock.get('.action-row > .like-info > .heart-inline > .likes-count')
+            .contains('0');
+    });
+
+    it('delete works', (): void => {
         const deleteTestMediaBlock = getMediaBlockByTitle(updatedTitle);
         deleteTestMediaBlock
             .within(() => {
@@ -95,40 +110,47 @@ describe('Integration Tests - Test User media flow', () => {
             .should('not.exist');
     });
 
-    function getEditButton() {
+    it('paging works', (): void => {
+        cy.get('.media-block').should('have.length', 5);
+        cy.scrollTo('bottom');
+        cy.get('.media-block').should('have.length.at.least', 6);
+    });
+
+    // Helper functions with proper TypeScript typing
+    function getEditButton(): Cypress.Chainable<JQuery<HTMLElement>> {
         return cy.get(':nth-child(1) > .media-block > .action-row > .action-buttons > .edit-btn');
     }
 
-    function getReloadSpinner(mediaItemIndex) {
+    function getReloadSpinner(mediaItemIndex: number): Cypress.Chainable<JQuery<HTMLElement>> {
         return cy.get(`:nth-child(${mediaItemIndex}) > .media-block > .media-item > app-reload-spinner > .spinner`);
     }
 
-    function getMediaBlockByIndex(mediaItemIndex) {
+    function getMediaBlockByIndex(mediaItemIndex: number): Cypress.Chainable<JQuery<HTMLElement>> {
         return cy.get(`:nth-child(${mediaItemIndex}) > .media-block > .media-item`);
     }
 
-    function getMediaBlockByTitle(title) {
+    function getMediaBlockByTitle(title: string): Cypress.Chainable<JQuery<HTMLElement>> {
         return cy.get('.media-block')
             .contains(title)
             .parent().parent();
     }
 
-    function inputTitle(testTitle) {
+    function inputTitle(title: string): void {
         const input = cy.get('input[type="text"]');
         input.click();
         input.clear();
-        input.type(testTitle);
+        input.type(title);
     }
 
-    function clickSubmit() {
+    function clickSubmit(): void {
         cy.get('button.btn-primary').click();
     }
 
-    function getConfirmDeleteButton() {
+    function getConfirmDeleteButton(): Cypress.Chainable<JQuery<HTMLElement>> {
         return cy.get('.confirm-dialog > .actions > .btn-danger');
     }
 
-    function getCancelButton() {
+    function getCancelButton(): Cypress.Chainable<JQuery<HTMLElement>> {
         return cy.get('button.btn-secondary');
     }
-})
+});
