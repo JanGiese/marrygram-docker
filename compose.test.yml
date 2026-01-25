@@ -17,13 +17,12 @@ services:
       - "5432:5432"
     volumes:
       - db-data-test:/var/lib/postgresql/data
-      - ./test-data/init_test_db:/docker-entrypoint-initdb.d
 
   minio:
     ports:
       - "9000:9000"
     volumes:
-      - ./test-data/mino-test-data:/data
+      - minio-data-test:/data
 
   rabbitmq:
     ports:

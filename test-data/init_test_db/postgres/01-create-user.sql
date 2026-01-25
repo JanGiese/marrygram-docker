@@ -1,3 +1,0 @@
--- Create application user and database
---CREATE USER :appUser WITH PASSWORD ':appPassword';
---GRANT ALL PRIVILEGES ON DATABASE :appDbName TO :appUser;
