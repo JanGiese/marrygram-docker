@@ -3,6 +3,7 @@ description: 'Runs Cypress tests and uploads results'
 inputs:
   working-directory:
     required: false
+    description: 'The working directory to run Cypress tests in'
     default: '.'
   artifact-retention-days:
     default: '7'
@@ -21,7 +22,7 @@ inputs:
     required: false
     description: 'MinIO URL for Cypress'
   api-url:
-    default: 'http://localhost:8081'
+    default: 'http://localhost:8080'
     required: false
     description: 'API URL for Cypress'
   base-url:
