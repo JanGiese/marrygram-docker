@@ -39,6 +39,5 @@ describe('Integration Tests - Test User Login flow', (): void => {
         cy.loginTestUser();
         cy.get('app-guest-logout > button').should('be.visible');
         cy.get('.bottom-nav').should('be.visible');
-        //cy.location('pathname').should('eq', '/');
     });
 });
