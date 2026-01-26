@@ -1,65 +1,50 @@
-import {InformationSetupHandler} from "./information/information-setup.handler";
+export const USER_ONE_TOKEN = 'fe1a7a32-b262-419c-bef0-938c61363adf';
 
-export const USER_ONE_TOKEN_KEY = "testUserOneToken";
+const TEST_DATA_ZIP = 'export-with-images.zip';
 
 export class TestSetupHandler {
 
-    private informationSetupHandler: InformationSetupHandler;
-
     private backendUrl: string;
 
-    private adminToken?: string;
-
-    private adminJwt?: string;
+    private textDecoder: TextDecoder;
 
     constructor() {
         this.backendUrl = Cypress.env('apiUrl');
-        this.informationSetupHandler = new InformationSetupHandler(this.backendUrl);
+        this.textDecoder = new TextDecoder();
     }
 
     setUp(): void {
-        this.createTestAdmin()
-            .then(() => this.loginAdminUser())
-            .then(() => this.createTestUser())
-            .then(() => this.informationSetupHandler.setUp(this.adminJwt!));
+        this.importTestData();
     }
 
-    private createTestAdmin(): Cypress.Chainable<Cypress.Response<any>> {
-        return cy.request('POST', `${this.backendUrl}/test-data/find-or-create-test-admin`)
-            .then((response) => {
-                expect(response.status).to.eq(200);
-                this.adminToken = response.body;
-            });
-    }
+    private importTestData(): void {
+        cy.fixture(TEST_DATA_ZIP, 'binary').then((zipFileContent) => {
+            const blob = Cypress.Blob.binaryStringToBlob(zipFileContent);
+            const formData = new FormData();
+            formData.append('file', blob, TEST_DATA_ZIP);
 
-    private loginAdminUser() {
-        return cy.request({
-            method: 'POST',
-            url: `${this.backendUrl}/auth/login`,
-            body: {
-                token: this.adminToken!
-            }
-        }).then((response) => {
-            expect(response.status).to.eq(200);
-            this.adminJwt = response.body.jwt;
+            cy.request({
+                method: 'POST',
+                url: `${this.backendUrl}/import/zip`,
+                body: formData,
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                },
+                encoding: 'utf8'
+            }).then((response) => this.verifyUploadResponse(response));
         });
     }
 
-    private createTestUser(): Cypress.Chainable<any> {
-        const bearer = this.adminJwt!;
-        return cy.request({
-            method: 'POST',
-            url: `${this.backendUrl}/guest/find-or-create?guestName=TestUserOne&isAdmin=false`,
-            auth: {
-                bearer: bearer
-            }
-        }).then((response) => this.storeToken(USER_ONE_TOKEN_KEY, response));
-    }
-
-    private storeToken(tokenKey: string, response: Cypress.Response<any>) {
+    private verifyUploadResponse(response: Cypress.Response<any>) {
         expect(response.status).to.eq(200);
-        cy.log('Storing token for', tokenKey, ':', JSON.stringify(response.body));
-        const token: string = response.body;
-        Cypress.env(tokenKey, token);
+
+        this.textDecoder = new TextDecoder();
+        const responseText = this.textDecoder.decode(response.body as ArrayBuffer);
+        const responseJson = JSON.parse(responseText);
+
+        expect(responseJson.success).to.be.true;
+        expect(responseJson.message).to.contain('imported successfully');
+        expect(responseJson.recordCounts).to.exist;
+        expect(responseJson.imagesCounts).to.exist;
     }
 }

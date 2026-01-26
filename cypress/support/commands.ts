@@ -1,8 +1,7 @@
-import {USER_ONE_TOKEN_KEY} from './test-setup-handler';
+import {USER_ONE_TOKEN} from './test-setup-handler';
 
 Cypress.Commands.add('loginTestUser', (): void => {
     cy.intercept({method: 'POST', url: '/auth/*'}).as('auth');
-    const userToken: string = Cypress.env(USER_ONE_TOKEN_KEY);
-    cy.visit(`/login/${userToken}`);
+    cy.visit(`/login/${USER_ONE_TOKEN}`);
     cy.wait('@auth');
 });

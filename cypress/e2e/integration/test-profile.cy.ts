@@ -11,7 +11,8 @@ describe('Integration Tests - Test User Profile Image Upload', (): void => {
     it('upload profile picture works', (): void => {
         cy.get('.bottom-nav > :nth-child(5)').click();
         cy.get(`${FILE_INPUT_BUTTON_SELECTOR} svg`).click();
-        cy.get(`${FILE_INPUT_BUTTON_SELECTOR} input`).selectFile('test-data/test-upload.jpg', {force: true});
+
+        cy.get(`${FILE_INPUT_BUTTON_SELECTOR} input`).selectFile('cypress/fixtures/test-upload.jpg', {force: true});
 
         cy.get('app-reload-spinner').should('not.exist');
     });

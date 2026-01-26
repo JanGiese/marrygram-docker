@@ -2,6 +2,10 @@
 
 const APP_FILE_INPUT_BUTTON: string = 'app-file-input-button:nth-child(1)';
 
+function navigateToGallery() {
+    cy.get('.bottom-nav > :nth-child(1)').click();
+}
+
 describe('Integration Tests - Test User media flow', (): void => {
     const testTitle: string = 'Upload Integration Test';
     const updatedTitle: string = 'Edited Title';
@@ -9,6 +13,11 @@ describe('Integration Tests - Test User media flow', (): void => {
 
     beforeEach((): void => {
         cy.loginTestUser();
+        navigateToGallery();
+    });
+
+    it ('navigation works', (): void => {
+        cy.get('nav.bottom-nav button:nth-child(1)').should('have.class', 'is-active');
     });
 
     it('upload works', (): void => {
@@ -20,7 +29,7 @@ describe('Integration Tests - Test User media flow', (): void => {
         fileInput.should('not.be.visible');
 
         cy.get(`${APP_FILE_INPUT_BUTTON} svg`).click();
-        fileInput.selectFile('test-data/test-upload.jpg', {force: true});
+        fileInput.selectFile('cypress/fixtures/test-upload.jpg', {force: true});
         inputTitle(testTitle);
 
         clickSubmit();
