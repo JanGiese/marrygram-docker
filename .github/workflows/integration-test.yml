@@ -67,7 +67,7 @@ jobs:
           media-compressor-tag: ${{ needs.resolve-tags.outputs.media }}
           compose-files: integration-tests/compose.yml -f integration-tests/compose.test.yml
           ghcr-token: ${{ secrets.GHCR_TOKEN }}
-          ghcr-username: ${{ github.actor }}
+          ghcr-username: ${{ github.repository_owner }}
           health-check-url: 'http://localhost:4300'
           health-check-timeout: '120'
 
