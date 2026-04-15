@@ -1,6 +1,6 @@
 services:
   frontend:
-    image: ghcr.io/jangiese/marrygram-frontend:development
+    image: ghcr.io/jangiese/marrygram-frontend:latest
     container_name: marrygram-frontend
     restart: always
     env_file:
@@ -10,15 +10,20 @@ services:
         condition: service_healthy
       media-compressor:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:80 || exit 1"]
-      interval: 10s
+      interval: 30s
       timeout: 5s
-      retries: 10
+      retries: 5
       start_period: 30s
 
   backend:
-    image: ghcr.io/jangiese/marrygram-backend:development
+    image: ghcr.io/jangiese/marrygram-backend:latest
     container_name: marrygram-backend
     restart: always
     env_file:
@@ -30,19 +35,27 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
-    extra_hosts:
-      - "minio.jpgiese.com:host-gateway"
+    deploy:
+      resources:
+        limits:
+          cpus: "1.5"
+          memory: 2G
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health/liveness || wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health/liveness || exit 1"]
-      interval: 10s
+      interval: 30s
       timeout: 10s
-      retries: 10
+      retries: 5
       start_period: 90s
 
   media-compressor:
     image: ghcr.io/jangiese/marrygram-media-compressor:latest
     container_name: marrygram-media-compressor
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 2G
     env_file:
       - stack.env
     depends_on:
@@ -54,9 +67,9 @@ services:
       - "minio.jpgiese.com:host-gateway"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 10s
+      interval: 30s
       timeout: 10s
-      retries: 10
+      retries: 5
       start_period: 60s
 
   db:
@@ -70,9 +83,18 @@ services:
     volumes:
       - db-data:/var/lib/postgresql/data
       - ./init_db:/docker-entrypoint-initdb.d
+    command: >
+      postgres
+      -c shared_buffers=512MB
+      -c max_connections=100
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 2G
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER"]
-      interval: 5s
+      interval: 10s
       timeout: 5s
       retries: 5
 
@@ -95,16 +117,24 @@ services:
     image: rabbitmq:3-management
     container_name: marrygram-rabbitmq
     restart: always
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
-      interval: 10s
+      interval: 30s
       timeout: 10s
-      retries: 10
+      retries: 5
       start_period: 60s
 
 volumes:
   db-data:
   minio-data:
+  rabbitmq-data:
 
 networks:
   default:
