@@ -23,7 +23,7 @@ describe('Integration Tests - Test User Login flow', (): void => {
 
     it('Should logout correctly', (): void => {
         cy.loginTestUser();
-        
+
         cy.get('button[aria-label="Logout"] svg').click();
         cy.get('.guest-login').should('be.visible');
         cy.location('pathname').should('include', 'login');
@@ -40,4 +40,15 @@ describe('Integration Tests - Test User Login flow', (): void => {
         cy.get('app-guest-logout > button').should('be.visible');
         cy.get('.bottom-nav').should('be.visible');
     });
+
+    it('Should handle expired token correctly', (): void => {
+        cy.loginWithFastExpiringToken();
+        cy.get('app-guest-logout > button').should('be.visible');
+        cy.get('.bottom-nav').should('be.visible');
+        cy.wait(2000).then(() => {
+            cy.reload();
+            cy.location('pathname').should('eq', '/login')
+        });
+    });
+
 });

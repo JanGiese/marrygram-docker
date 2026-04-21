@@ -5,3 +5,10 @@ Cypress.Commands.add('loginTestUser', (): void => {
     cy.visit(`/login/${USER_ONE_TOKEN}`);
     cy.wait('@auth');
 });
+
+
+Cypress.Commands.add('loginWithFastExpiringToken', (): void => {
+    cy.intercept({method: 'POST', url: '/auth/*'}).as('auth');
+    cy.visit(`/login/${USER_ONE_TOKEN}?expirationMs=1000`);
+    cy.wait('@auth');
+});
