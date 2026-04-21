@@ -4,6 +4,8 @@ const SCHEDULE_SECTION_INDEX = 2;
 
 const MENU_SECTION_INDEX = 3;
 
+const HOUSE_RULES_SECTION_INDEX = 4;
+
 interface MenuItem {
     name: string;
     description: string;
@@ -90,6 +92,16 @@ describe('Integration Tests - Information', (): void => {
             {name: 'Weisswein', description: 'weisser Wein'},
             {name: 'Bier', description: 'vom Fass, bestimmt aus dem Sauerland'}
         ]);
+    });
+
+    it('can check house rules', (): void => {
+        navigateToInformation();
+        toggleInfoSection(HOUSE_RULES_SECTION_INDEX);
+        cy.get(':nth-child(1) > .item-title').contains('Keine Wunderkerzen oder Konfetti');
+        cy.get(':nth-child(1) > .item-description').contains('verzichten.');
+
+        cy.get(':nth-child(2) > .item-title').contains('Dresscode');
+        cy.get(':nth-child(2) > .item-description').contains('kleiden.');
     });
 
     function navigateToInformation(): void {
