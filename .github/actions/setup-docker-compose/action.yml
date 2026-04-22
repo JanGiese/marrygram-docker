@@ -61,11 +61,3 @@ runs:
       shell: bash
       run: |
         docker compose -f ${{ inputs.compose-files }} up -d
-
-    - name: Wait for services to be ready
-      shell: bash
-      run: |
-        echo "Waiting for services to be ready..."
-        timeout ${{ inputs.health-check-timeout }} bash -c 'until curl -f ${{ inputs.health-check-url }}; do sleep 2; done'
-        echo "✅ Services are ready!"
-
