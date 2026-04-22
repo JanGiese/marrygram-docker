@@ -24,7 +24,7 @@ inputs:
   health-check-url:
     description: 'URL to check for service readiness'
     required: false
-    default: 'http://localhost:4300'
+    default: 'http://localhost:4200'
   health-check-timeout:
     description: 'Timeout for health check in seconds'
     required: false
