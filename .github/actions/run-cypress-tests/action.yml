@@ -26,7 +26,7 @@ inputs:
     required: false
     description: 'API URL for Cypress'
   base-url:
-    default: 'http://localhost:4300'
+    default: 'http://localhost:4200'
     required: false
     description: 'Cypress base URL'
 

@@ -3,7 +3,7 @@ services:
     profiles:
       - frontend
     ports:
-      - "4300:80"
+      - "4200:80"
 
   backend:
     profiles:

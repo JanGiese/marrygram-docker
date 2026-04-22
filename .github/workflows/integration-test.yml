@@ -68,7 +68,7 @@ jobs:
           compose-files: integration-tests/compose.yml -f integration-tests/compose.test.yml
           ghcr-token: ${{ secrets.GHCR_TOKEN }}
           ghcr-username: ${{ github.repository_owner }}
-          health-check-url: 'http://localhost:4300'
+          health-check-url: 'http://localhost:4200'
           health-check-timeout: '120'
 
       - name: Set up Node.js
