@@ -49,8 +49,8 @@ runs:
       with:
         name: cypress-results
         path: |
-          cypress/screenshots
-          cypress/videos
+          ${{ inputs.working-directory }}/cypress/screenshots
+          ${{ inputs.working-directory }}/cypress/videos
         retention-days: ${{ inputs.artifact-retention-days }}
 
     - name: Upload test report
@@ -58,5 +58,5 @@ runs:
       uses: actions/upload-artifact@v4
       with:
         name: test-reports
-        path: cypress/results
+        path: ${{ inputs.working-directory }}/cypress/results
         retention-days: ${{ inputs.artifact-retention-days }}
