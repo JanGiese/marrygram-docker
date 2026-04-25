@@ -57,6 +57,22 @@ runs:
       run: |
         docker network create nginx || true
 
+    - name: Set ip address
+      shell: bash
+      run: |
+        IP=$(hostname -I 2>/dev/null | awk '{print $1}')
+        echo "HOST_IP=$IP" >> $GITHUB_ENV
+        echo "Using IP: $IP"
+        STACK_ENV="integration-tests/stack.env"
+        # Set MINIO_URL in stack.env dynamically based on the detected IP address
+        if [ -f "$STACK_ENV" ]; then
+        # Replace or add MINIO_URL in stack.env
+        sed -i.bak -E "s|^#?MINIO_URL=.*$|MINIO_URL=http://$IP:9000|" "$STACK_ENV"
+        echo "Set MINIO_URL in stack.env to http://$IP:9000 gesetzt."
+        else
+          echo "Warning: stack.env not found!"
+        fi
+
     - name: Start services
       shell: bash
       run: |
