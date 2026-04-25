@@ -9,7 +9,6 @@ describe('Integration Tests - Tasks', (): void => {
 
     beforeEach((): void => {
         cy.loginTestUser();
-        cy.reload();
         navigateToTasks();
     });
 
