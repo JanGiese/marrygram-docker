@@ -44,6 +44,7 @@ runs:
         CYPRESS_BASE_URL: ${{ inputs.base-url }}
 
     - name: Upload test results
+      working-directory: ${{ inputs.working-directory }}
       if: always() && inputs.upload-artifacts == 'true'
       uses: actions/upload-artifact@v4
       with:
@@ -54,6 +55,7 @@ runs:
         retention-days: ${{ inputs.artifact-retention-days }}
 
     - name: Upload test report
+      working-directory: ${{ inputs.working-directory }}
       if: always() && inputs.upload-artifacts == 'true'
       uses: actions/upload-artifact@v4
       with:
