@@ -119,6 +119,37 @@ describe('Integration Tests - Test User media flow', (): void => {
             .should('not.exist');
     });
 
+    it('multi upload works', (): void => {
+        const fileInputApp = cy.get(APP_FILE_INPUT_BUTTON);
+        fileInputApp.should('exist');
+        const fileInput = cy.get(`${APP_FILE_INPUT_BUTTON} input`);
+
+        fileInput.should('exist');
+        fileInput.should('not.be.visible');
+
+        cy.get(`${APP_FILE_INPUT_BUTTON} svg`).click();
+        const files = ['cypress/fixtures/test-upload.jpg',
+            'cypress/fixtures/test-upload-2.jpg',
+            'cypress/fixtures/test-upload-3.jpg',
+            'cypress/fixtures/test-upload-4.jpg',
+            'cypress/fixtures/test-upload-5.jpg'];
+        fileInput.selectFile(files, {force: true});
+
+        for (let i = 1; i <= files.length; i++) {
+            inputTitle(`${testTitle} ${i}`, i);
+        }
+        for (let i = 1; i <= files.length; i++) {
+            clickSubmit(1);
+        }
+        for (let i = 1; i <= files.length; i++) {
+            const titleIndex = files.length - i + 1;
+            cy.get(`:nth-child(${i}) > .media-block > .media-info > .media-guest-name`)
+                .contains(testUserName);
+            cy.get(`:nth-child(${i}) > .media-block > .media-info > .media-title`)
+                .contains(`${testTitle} ${titleIndex}`);
+        }
+    });
+
     it('paging works', (): void => {
         cy.get('.media-block').should('have.length', 5);
         cy.scrollTo('bottom');
@@ -144,15 +175,15 @@ describe('Integration Tests - Test User media flow', (): void => {
             .parent().parent();
     }
 
-    function inputTitle(title: string): void {
-        const input = cy.get('input[type="text"]');
+    function inputTitle(title: string, index: number = 1): void {
+        const input = cy.get(`app-upload-editor:nth-child(${index}) input`);
         input.click();
         input.clear();
         input.type(title);
     }
 
-    function clickSubmit(): void {
-        cy.get('button.btn-primary').click();
+    function clickSubmit(index: number = 1): void {
+        cy.get(`:nth-child(${index}) > .simple-editor > .editor-content > .actions > .btn-primary`).click();
     }
 
     function getConfirmDeleteButton(): Cypress.Chainable<JQuery<HTMLElement>> {
