@@ -150,6 +150,33 @@ describe('Integration Tests - Test User media flow', (): void => {
         }
     });
 
+    it('large works', (): void => {
+        const fileInputApp = cy.get(APP_FILE_INPUT_BUTTON);
+        fileInputApp.should('exist');
+        const fileInput = cy.get(`${APP_FILE_INPUT_BUTTON} input`);
+
+        fileInput.should('exist');
+        fileInput.should('not.be.visible');
+
+        cy.get(`${APP_FILE_INPUT_BUTTON} svg`).click();
+        fileInput.selectFile('cypress/fixtures/test-upload-large.jpg', {force: true});
+        const title = testTitle + ' large';
+        inputTitle(title);
+
+        clickSubmit();
+        cy.get(':nth-child(1) > .media-block > .media-info > .media-guest-name')
+            .contains(testUserName);
+        cy.get(':nth-child(1) > .media-block > .media-info > .media-title')
+            .contains(title);
+
+        getEditButton()
+            .should('be.visible');
+        getReloadSpinner(1)
+            .should('not.exist');
+        getMediaBlockByIndex(1)
+            .should('not.contain', 'Kein Vorschaubild verfügbar');
+    });
+
     it('paging works', (): void => {
         cy.get('.media-block').should('have.length', 5);
         cy.scrollTo('bottom');
